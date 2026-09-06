@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SIH 2026 Slide: Technology Stack & Programming Languages</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #e2e8f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .slide-canvas {
+      width: 1280px;
+      height: 720px;
+      background: #ffffff;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      position: relative;
+      display: flex;
+      flex-col: column;
+      overflow: hidden;
+      padding: 40px 50px 30px 50px;
+      box-sizing: border-box;
+    }
+    .card-header {
+      background: #0f1f3d;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      padding: 8px 16px;
+      text-transform: uppercase;
+      border-radius: 4px 4px 0 0;
+    }
+    .card-body {
+      background: #ffffff;
+      border: 1.5px solid #0f1f3d;
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+      padding: 16px 20px;
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 16:9 Presentation Slide Canvas -->
+  <div class="slide-canvas flex flex-col justify-between">
+    
+    <!-- Top Header -->
+    <div>
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-extrabold text-[#1d4ed8] tracking-tight">
+            TECHNOLOGY STACK & PROGRAMMING LANGUAGES
+          </h1>
+          <p class="text-xs text-slate-500 font-medium tracking-wide uppercase mt-1">
+            SMART INDIA HACKATHON 2026 &nbsp;|&nbsp; PS ID: SIH262006 &nbsp;|&nbsp; Category: Software
+          </p>
+        </div>
+        <!-- SIH Lightbulb / Logo Badge -->
+        <div class="flex items-center gap-2">
+          <div class="w-10 h-10 rounded-full border-2 border-orange-500 flex items-center justify-center p-1">
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke="#ea580c" stroke-width="2" fill="none">
+              <path d="M9 18h6m-4 3h2m-7-9a6 6 0 1 1 10 0c0 2-1.5 3-2 4H9c-.5-1-2-2-2-4z"/>
+            </svg>
+          </div>
+          <span class="font-bold text-xs text-slate-700 tracking-wider">SIH 2026</span>
+        </div>
+      </div>
+      <div class="w-full h-1 bg-[#0f1f3d] mt-3"></div>
+    </div>
+
+    <!-- 4-Box Grid (Matching Slide 2 & 5 layout) -->
+    <div class="grid grid-cols-2 gap-6 my-4 flex-1">
+
+      <!-- Box 1: Programming Languages -->
+      <div class="flex flex-col">
+        <div class="card-header flex items-center justify-between">
+          <span>1. PROGRAMMING LANGUAGES</span>
+          <span class="text-orange-400 font-mono text-xs">CORE TECH</span>
+        </div>
+        <div class="card-body text-[13px] text-slate-700 space-y-2.5 leading-relaxed">
+          <div>
+            <strong class="text-slate-900">• Python 3.14:</strong> 
+            Core language for the backend server, mathematical solvers, and AI pipelines.
+          </div>
+          <div>
+            <strong class="text-slate-900">• JavaScript (ES6+) / TypeScript:</strong> 
+            Powers the interactive web dashboard, real-time map updates, and telemetry ticker.
+          </div>
+          <div>
+            <strong class="text-slate-900">• HTML5 & CSS3:</strong> 
+            Provides semantic layout structure and responsive dark-mode styling.
+          </div>
+          <div>
+            <strong class="text-slate-900">• JSON / GeoJSON:</strong> 
+            High-speed data contracts connecting maritime AIS coordinates and Indian Railways tariffs.
+          </div>
+        </div>
+      </div>
+
+      <!-- Box 2: Web & Frontend Stack -->
+      <div class="flex flex-col">
+        <div class="card-header flex items-center justify-between">
+          <span>2. WEB & GEOSPATIAL MAP STACK</span>
+          <span class="text-blue-300 font-mono text-xs">USER INTERFACE</span>
+        </div>
+        <div class="card-body text-[13px] text-slate-700 space-y-2.5 leading-relaxed">
+          <div>
+            <strong class="text-slate-900">• Leaflet.js:</strong> 
+            Lightweight, high-performance GIS library that renders nautical ship tracks and rail corridors.
+          </div>
+          <div>
+            <strong class="text-slate-900">• Esri World Dark Gray Canvas:</strong> 
+            Clean, watermark-free dark GIS map designed for institutional command centers.
+          </div>
+          <div>
+            <strong class="text-slate-900">• Tailwind CSS:</strong> 
+            Modern utility-first styling engine ensuring responsive layouts across laptops and tablets.
+          </div>
+          <div>
+            <strong class="text-slate-900">• Chart.js:</strong> 
+            Interactive time-series charts rendering 30-day Baltic Dry Index (BDI) forecast curves.
+          </div>
+        </div>
+      </div>
+
+      <!-- Box 3: Backend Server & APIs -->
+      <div class="flex flex-col">
+        <div class="card-header flex items-center justify-between">
+          <span>3. BACKEND SERVER & APIS</span>
+          <span class="text-emerald-400 font-mono text-xs">ENGINEERING</span>
+        </div>
+        <div class="card-body text-[13px] text-slate-700 space-y-2.5 leading-relaxed">
+          <div>
+            <strong class="text-slate-900">• FastAPI (Python):</strong> 
+            High-throughput ASGI web framework delivering fast sub-150ms optimization calculations.
+          </div>
+          <div>
+            <strong class="text-slate-900">• Uvicorn:</strong> 
+            Lightning-fast ASGI server for production and local execution.
+          </div>
+          <div>
+            <strong class="text-slate-900">• Pydantic v2:</strong> 
+            Strict schema validation for incoming vessel coordinates and train freight rates.
+          </div>
+          <div>
+            <strong class="text-slate-900">• REST & WebSocket APIs:</strong> 
+            Standard protocols connecting AIS ship telemetry with Indian Railways FOIS.
+          </div>
+        </div>
+      </div>
+
+      <!-- Box 4: AI, Optimization & Deployment -->
+      <div class="flex flex-col">
+        <div class="card-header flex items-center justify-between">
+          <span>4. AI, MATH SOLVER & DEPLOYMENT</span>
+          <span class="text-purple-300 font-mono text-xs">ALGORITHMS</span>
+        </div>
+        <div class="card-body text-[13px] text-slate-700 space-y-2.5 leading-relaxed">
+          <div>
+            <strong class="text-slate-900">• PuLP & Google OR-Tools:</strong> 
+            Mixed-Integer Linear Programming (MILP) solver used to minimize Total Landed Cost.
+          </div>
+          <div>
+            <strong class="text-slate-900">• XGBoost & Scikit-Learn:</strong> 
+            Gradient-boosted machine learning model for 14–30 day shipping freight rate forecasting.
+          </div>
+          <div>
+            <strong class="text-slate-900">• Vercel Cloud & Edge CDN:</strong> 
+            Serverless Python API hosting and global static deployment directly from GitHub.
+          </div>
+          <div>
+            <strong class="text-slate-900">• Git & GitHub:</strong> 
+            Distributed version control and automated continuous deployment.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Footer (Matching other slides) -->
+    <div class="border-t border-slate-300 pt-2 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+      <span>SMART INDIA HACKATHON 2026 &nbsp;|&nbsp; Team OceanSteel</span>
+      <span>PS ID: SIH262006</span>
+      <span>Slide 7 of 7</span>
+    </div>
+
+  </div>
+
+</body>
+</html>
