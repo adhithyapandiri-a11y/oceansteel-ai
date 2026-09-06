@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OCEANSTEEL // Maritime & Inland Rail Logistics Optimization Platform</title>
+  
+  <!-- Inter & JetBrains Mono Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+              950: '#172554',
+            },
+            surface: {
+              base: '#090d16',
+              panel: '#0f172a',
+              card: '#131c31',
+              cardHover: '#18233d',
+              border: 'rgba(255, 255, 255, 0.08)',
+              borderSubtle: 'rgba(255, 255, 255, 0.04)',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Chart.js for ML Freight Forecasting -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Offline Fallback Telemetry Seed -->
+  <script src="fallback_data.js"></script>
+
+  <style>
+    body {
+      background-color: #090d16;
+      color: #cbd5e1;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Enterprise custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    /* Leaflet clean styling without watermarks */
+    .leaflet-container {
+      background: #090d16 !important;
+      font-family: 'Inter', sans-serif !important;
+    }
+
+    .leaflet-popup-content-wrapper {
+      background: #0f172a !important;
+      color: #e2e8f0 !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: 8px !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important;
+    }
+
+    .leaflet-popup-tip {
+      background: #0f172a !important;
+    }
+
+    .vessel-halo {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid #38bdf8;
+      width: 28px;
+      height: 28px;
+      top: -6px;
+      left: -6px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- Enterprise Header Bar -->
+  <header class="border-b border-surface-border bg-surface-panel/95 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-[1780px] mx-auto px-5 py-2.5 flex items-center justify-between gap-4">
+      
+      <!-- Brand & Institutional Identity -->
+      <div class="flex items-center gap-3.5">
+        <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white shadow-sm">
+          <i data-lucide="anchor" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm tracking-tight text-white uppercase">OceanSteel AI</span>
+            <span class="text-[10px] text-slate-400 font-mono tracking-wider border-l border-slate-700 pl-2">SIH262006</span>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700 font-mono">PROD-v1.4</span>
+          </div>
+          <div class="text-[11px] text-slate-400 flex items-center gap-2">
+            <span>Maritime (AIS) & Indian Railways (FOIS) Decision Support System</span>
+            <span class="text-slate-600">•</span>
+            <span class="text-slate-400">Ministry of Steel / SAIL Logistics Division</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Telemetry Gateway Health Status -->
+      <div class="hidden xl:flex items-center gap-4 text-xs font-mono">
+        <div class="flex items-center gap-2 px-2.5 py-1 rounded bg-slate-900/90 border border-slate-800">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span class="text-slate-400">AIS TELEMETRY:</span>
+          <span class="text-slate-200 font-medium">LIVE (156.8 MHz)</span>
+        </div>
+        <div class="flex items-center gap-2 px-2.5 py-1 rounded bg-slate-900/90 border border-slate-800">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span class="text-slate-400">CRIS-FOIS RAILWAY:</span>
+          <span class="text-slate-200 font-medium">SYNCED (SER/ECoR)</span>
+        </div>
+        <div class="flex items-center gap-2 px-2.5 py-1 rounded bg-slate-900/90 border border-slate-800">
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+          <span class="text-slate-400">TLC SOLVER:</span>
+          <span class="text-slate-200 font-medium">COIN-OR CBC (MILP)</span>
+        </div>
+      </div>
+
+      <!-- Operational Mode & Scenario Controller -->
+      <div class="flex items-center gap-2">
+        <div class="flex items-center bg-slate-900 rounded-lg p-0.5 border border-slate-800 text-xs">
+          <span class="px-2.5 py-1 text-slate-400 text-[11px] font-medium uppercase tracking-wider">Scenario:</span>
+          <select id="scenarioSelect" onchange="triggerScenario(this.value)" class="bg-slate-800 text-xs text-slate-200 font-medium rounded px-2.5 py-1 border-0 focus:ring-1 focus:ring-brand-500 cursor-pointer">
+            <option value="reset">Standard Baseline Operations</option>
+            <option value="paradip_congestion">Paradip Berth Breakdown (+8.8d delay)</option>
+            <option value="rail_shortage">Indian Railways Rake Shortage (Paradip)</option>
+            <option value="cyclone_alert">Bay of Bengal Cyclone Advisory (OPL closed)</option>
+          </select>
+        </div>
+
+        <button onclick="fetchDashboardData()" class="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition" title="Refresh Live Feeds">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Executive Performance Strip -->
+  <section class="border-b border-surface-border bg-surface-panel/50">
+    <div class="max-w-[1780px] mx-auto px-5 py-2.5">
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        
+        <!-- KPI 1 -->
+        <div class="flex flex-col">
+          <span class="text-[10px] font-semibold tracking-wider uppercase text-slate-400">Net Realized Savings</span>
+          <div class="flex items-baseline gap-2 mt-0.5">
+            <span class="text-lg font-bold text-white font-mono tabular-nums" id="kpiForex">$272,068 USD</span>
+            <span class="text-xs text-emerald-400 font-medium" id="kpiForexINR">₹2.26 Cr</span>
+          </div>
+          <span class="text-[11px] text-slate-500 mt-0.5">Avoided demurrage & optimized rail tariff</span>
+        </div>
+
+        <!-- KPI 2 -->
+        <div class="flex flex-col border-l border-slate-800/80 pl-4">
+          <span class="text-[10px] font-semibold tracking-wider uppercase text-slate-400">Voyage Turnaround Saved</span>
+          <div class="flex items-baseline gap-2 mt-0.5">
+            <span class="text-lg font-bold text-white font-mono tabular-nums" id="kpiDays">8.3 Days</span>
+            <span class="text-xs text-emerald-400 font-medium">Faster Delivery</span>
+          </div>
+          <span class="text-[11px] text-slate-500 mt-0.5">Prevents blast furnace feed interruption</span>
+        </div>
+
+        <!-- KPI 3 -->
+        <div class="flex flex-col border-l border-slate-800/80 pl-4">
+          <span class="text-[10px] font-semibold tracking-wider uppercase text-slate-400">Indian Railways FOIS Status</span>
+          <div class="flex items-baseline gap-2 mt-0.5">
+            <span class="text-lg font-bold text-amber-400 font-mono tabular-nums" id="kpiRail">10 BOXN Rakes</span>
+            <span class="text-xs text-slate-400">Ready at Dhamra</span>
+          </div>
+          <span class="text-[11px] text-slate-500 mt-0.5">38,500 MT/day evacuation throughput</span>
+        </div>
+
+        <!-- KPI 4 -->
+        <div class="flex flex-col border-l border-slate-800/80 pl-4">
+          <span class="text-[10px] font-semibold tracking-wider uppercase text-slate-400">Fleet Under Monitoring</span>
+          <div class="flex items-baseline gap-2 mt-0.5">
+            <span class="text-lg font-bold text-white font-mono tabular-nums" id="kpiVessels">3 Vessels</span>
+            <span class="text-xs text-blue-400 font-medium">385k MT Cargo</span>
+          </div>
+          <span class="text-[11px] text-slate-500 mt-0.5">Inbound from Australia & South Africa</span>
+        </div>
+
+        <!-- KPI 5 -->
+        <div class="flex flex-col border-l border-slate-800/80 pl-4">
+          <span class="text-[10px] font-semibold tracking-wider uppercase text-slate-400">Plant Inventory Buffer</span>
+          <div class="flex items-baseline gap-2 mt-0.5">
+            <span class="text-lg font-bold text-amber-300 font-mono tabular-nums" id="kpiStockpile">11.0 Days</span>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800">ALERT</span>
+          </div>
+          <span class="text-[11px] text-slate-500 mt-0.5">SAIL Rourkela: Target min 12.0 days</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Dual-Pane Command Workspace -->
+  <main class="max-w-[1780px] mx-auto px-5 py-4 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+    <!-- Left Column: Geospatial Tactical Map (7 Cols) -->
+    <div class="lg:col-span-7 flex flex-col gap-4">
+      
+      <div class="bg-surface-panel border border-surface-border rounded-xl flex flex-col overflow-hidden shadow-sm">
+        
+        <!-- Map Control Header -->
+        <div class="px-4 py-2.5 border-b border-surface-border flex items-center justify-between text-xs bg-slate-900/60">
+          <div class="flex items-center gap-2">
+            <i data-lucide="map" class="w-4 h-4 text-slate-400"></i>
+            <span class="font-semibold text-white">East Coast Maritime & Indian Railways Tactical Map</span>
+          </div>
+
+          <!-- Base Tile Selector -->
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1 text-[11px]">
+              <span class="text-slate-400 mr-1">Base Layer:</span>
+              <button onclick="setMapLayer('dark')" id="layerBtnDark" class="px-2 py-0.5 rounded bg-slate-800 text-white font-medium">Dark GIS</button>
+              <button onclick="setMapLayer('sat')" id="layerBtnSat" class="px-2 py-0.5 rounded text-slate-400 hover:text-white font-medium">Satellite</button>
+              <button onclick="setMapLayer('osm')" id="layerBtnOsm" class="px-2 py-0.5 rounded text-slate-400 hover:text-white font-medium">Streets</button>
+            </div>
+
+            <div class="h-3 w-px bg-slate-800"></div>
+
+            <!-- Map Overlays -->
+            <div class="flex items-center gap-3 text-[11px] text-slate-400">
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="checkbox" id="chkRail" checked onchange="toggleLayer('rail')" class="rounded bg-slate-800 border-slate-700 text-brand-600 focus:ring-0 w-3 h-3">
+                <span>IR Corridors</span>
+              </label>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="checkbox" id="chkShipping" checked onchange="toggleLayer('shipping')" class="rounded bg-slate-800 border-slate-700 text-brand-600 focus:ring-0 w-3 h-3">
+                <span>Sea Lanes</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- The Map Container -->
+        <div class="relative w-full h-[520px]">
+          <div id="map" class="w-full h-full"></div>
+
+          <!-- Tactical HUD Overlay (Bottom of Map) -->
+          <div class="absolute bottom-4 left-4 right-4 z-[400] bg-slate-950/90 backdrop-blur-md border border-slate-800 rounded-lg p-3 text-xs flex flex-wrap items-center justify-between gap-3 shadow-lg">
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-1.5 font-mono">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span class="text-slate-400">TARGET:</span>
+                <span id="hudVesselName" class="font-bold text-white">MV STEEL HORIZON</span>
+              </div>
+              <span class="text-slate-700">|</span>
+              <div class="text-slate-300 font-mono text-[11px]" id="hudVesselStats">
+                Draft: 17.5m • SOG: 12.6 kts • Pos: 6.45°N, 88.75°E • Cargo: 150,000 MT Hard Coking Coal
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800/80 text-amber-300 font-mono text-[10px] font-medium">
+                FOIS: 10 BOXN Rakes Allocated
+              </span>
+              <span class="px-2 py-0.5 rounded bg-blue-950 border border-blue-800 text-blue-300 font-mono text-[10px] font-medium">
+                ETA: 11.2d to OPL
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Fleet Quick Switcher Toolbar -->
+      <div class="bg-surface-panel border border-surface-border rounded-xl p-3 flex items-center justify-between gap-4">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Fleet In Transit:</span>
+        <div class="flex items-center gap-2 flex-1 overflow-x-auto" id="vesselPills">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- Modular Lower Workspace: FOIS Railways & ML Forecaster -->
+      <div class="bg-surface-panel border border-surface-border rounded-xl flex flex-col overflow-hidden">
+        
+        <!-- Tab Bar -->
+        <div class="px-4 border-b border-surface-border flex items-center justify-between bg-slate-900/60">
+          <div class="flex items-center gap-1">
+            <button onclick="switchWorkspaceTab('rail')" id="tabBtnRail" class="px-3.5 py-2.5 text-xs font-medium border-b-2 border-brand-500 text-white transition flex items-center gap-2">
+              <i data-lucide="train" class="w-3.5 h-3.5 text-amber-400"></i>
+              Indian Railways FOIS / CRIS Siding Operations
+            </button>
+            <button onclick="switchWorkspaceTab('forecast')" id="tabBtnForecast" class="px-3.5 py-2.5 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
+              <i data-lucide="line-chart" class="w-3.5 h-3.5 text-blue-400"></i>
+              Baltic Capesize Index (BCI) 30-Day ML Outlook
+            </button>
+            <button onclick="switchWorkspaceTab('stockpile')" id="tabBtnStockpile" class="px-3.5 py-2.5 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center gap-2">
+              <i data-lucide="layers" class="w-3.5 h-3.5 text-slate-400"></i>
+              Steel Plant Stockpile Runways
+            </button>
+          </div>
+          <span class="text-[11px] font-mono text-slate-500">Live Indian Railways Class 140 Engine</span>
+        </div>
+
+        <!-- Tab 1: FOIS Railways Table -->
+        <div id="tabContentRail" class="p-4 flex flex-col gap-3">
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800/80 bg-slate-900/40">
+                <tr>
+                  <th class="py-2.5 px-3">Port Railhead Siding</th>
+                  <th class="py-2.5 px-3">BOXN Wagons Available</th>
+                  <th class="py-2.5 px-3">Daily Evacuation</th>
+                  <th class="py-2.5 px-3">Distance to Rourkela</th>
+                  <th class="py-2.5 px-3">Class 140 Tariff</th>
+                  <th class="py-2.5 px-3">Transit Time</th>
+                  <th class="py-2.5 px-3">Line Status</th>
+                </tr>
+              </thead>
+              <tbody id="railTableBody" class="divide-y divide-slate-800/60 font-mono text-slate-300">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 2: Machine Learning Freight Forecaster -->
+        <div id="tabContentForecast" class="p-4 hidden flex-col gap-3">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-2 bg-slate-900/50 border border-slate-800/80 rounded-lg p-3 h-[220px]">
+              <canvas id="freightChart"></canvas>
+            </div>
+            <div class="bg-slate-900/50 border border-slate-800/80 rounded-lg p-3 flex flex-col justify-between text-xs">
+              <div>
+                <div class="font-semibold text-slate-200 mb-1 flex items-center gap-1.5">
+                  <i data-lucide="trending-up" class="w-4 h-4 text-brand-400"></i>
+                  ML Freight Forecast Briefing
+                </div>
+                <p id="advisoryText" class="text-slate-300 leading-relaxed mt-1 text-[11px]">
+                  Ensemble models (XGBoost/LSTM) forecast a <strong>+20.5% surge</strong> in the Baltic Capesize Index over 21 days due to seasonal Queensland mining exports.
+                </p>
+                <div class="mt-2.5 p-2 rounded bg-brand-950/40 border border-brand-800/50 text-brand-200 text-[11px]">
+                  <strong class="text-white">Chartering Advisory:</strong> Lock 60-day time charter at current benchmark ($26,500/d) to hedge against projected $31,800/d spot rates.
+                </div>
+              </div>
+              <div class="text-[10px] text-slate-500 border-t border-slate-800 pt-2 font-mono">
+                Model: LightGBM + Prophet Ensemble | Confidence: 95%
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Steel Plant Stockpiles -->
+        <div id="tabContentStockpile" class="p-4 hidden flex-col gap-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="stockpileGrid">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Right Column: Prescriptive Decision Engine (5 Cols) -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+
+      <!-- The Prescriptive Rerouting Action Card -->
+      <div class="bg-surface-panel border border-surface-border rounded-xl flex flex-col overflow-hidden shadow-sm">
+        
+        <!-- Action Header -->
+        <div class="p-4 border-b border-surface-border flex items-start justify-between bg-slate-900/60">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                Prescriptive Advisory
+              </span>
+              <span class="text-xs text-slate-400 font-mono">Decision Gate: 11.2 Days Out</span>
+            </div>
+            <h3 class="text-base font-bold text-white mt-1" id="recActionTitle">
+              DIVERT TO DHAMRA PORT (ADANI)
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5" id="recActionSub">
+              MV Steel Horizon • 150,000 MT Hard Coking Coal for SAIL Rourkela
+            </p>
+          </div>
+          <div class="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-brand-400">
+            <i data-lucide="git-pull-request" class="w-4 h-4"></i>
+          </div>
+        </div>
+
+        <!-- High-Density Analytical Comparison Grid -->
+        <div class="p-4 flex flex-col gap-3">
+          
+          <div class="border border-slate-800 rounded-lg overflow-hidden text-xs">
+            <table class="w-full text-left">
+              <thead class="bg-slate-900/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="py-2 px-3">Operational Parameter</th>
+                  <th class="py-2 px-3 text-slate-400">Nominated (Paradip)</th>
+                  <th class="py-2 px-3 text-emerald-400 font-semibold">Recommended (Dhamra)</th>
+                  <th class="py-2 px-3 text-right">Variance</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/80 font-mono text-slate-300 text-[11px]">
+                <tr>
+                  <td class="py-2 px-3 font-sans text-slate-400">Anchorage Wait Queue</td>
+                  <td class="py-2 px-3 text-red-400" id="cmpBaseQueue">7.8 Days</td>
+                  <td class="py-2 px-3 text-emerald-400" id="cmpOptQueue">1.1 Days</td>
+                  <td class="py-2 px-3 text-right text-emerald-400 font-semibold">-6.7 Days</td>
+                </tr>
+                <tr>
+                  <td class="py-2 px-3 font-sans text-slate-400">Charter Demurrage Fine</td>
+                  <td class="py-2 px-3 text-red-400" id="cmpBaseDemurrage">$195,000</td>
+                  <td class="py-2 px-3" id="cmpOptDemurrage">$27,500</td>
+                  <td class="py-2 px-3 text-right text-emerald-400 font-semibold">-$167,500</td>
+                </tr>
+                <tr>
+                  <td class="py-2 px-3 font-sans text-slate-400">Extra Steaming Bunker Fuel</td>
+                  <td class="py-2 px-3">$0</td>
+                  <td class="py-2 px-3" id="cmpOptFuel">+$4,297</td>
+                  <td class="py-2 px-3 text-right text-amber-400">+$4,297</td>
+                </tr>
+                <tr>
+                  <td class="py-2 px-3 font-sans text-slate-400">Indian Railways Distance</td>
+                  <td class="py-2 px-3" id="cmpBaseRailDist">462 km</td>
+                  <td class="py-2 px-3 text-emerald-400 font-semibold" id="cmpOptRailDist">418 km</td>
+                  <td class="py-2 px-3 text-right text-emerald-400 font-semibold">-44 km</td>
+                </tr>
+                <tr>
+                  <td class="py-2 px-3 font-sans text-slate-400">IR Freight Cost (Class 140)</td>
+                  <td class="py-2 px-3" id="cmpBaseRailCost">$2,307,692</td>
+                  <td class="py-2 px-3" id="cmpOptRailCost">$2,181,490</td>
+                  <td class="py-2 px-3 text-right text-emerald-400 font-semibold">-$126,202</td>
+                </tr>
+                <tr>
+                  <td class="py-2 px-3 font-sans text-slate-400">Port Handling & Dues</td>
+                  <td class="py-2 px-3" id="cmpBaseHandling">$630,000</td>
+                  <td class="py-2 px-3" id="cmpOptHandling">$667,500</td>
+                  <td class="py-2 px-3 text-right text-slate-400">+$37,500</td>
+                </tr>
+                <tr class="bg-slate-900/60 font-semibold text-white">
+                  <td class="py-2 px-3 font-sans">Total Landed Cost (TLC)</td>
+                  <td class="py-2 px-3" id="cmpBaseTLC">$5,027,855</td>
+                  <td class="py-2 px-3 text-emerald-400" id="cmpOptTLC">$4,755,787</td>
+                  <td class="py-2 px-3 text-right text-emerald-400 font-bold" id="cmpNetDiff">-$272,068</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Bottom Net Savings Callout Card -->
+          <div class="bg-emerald-950/20 border border-emerald-800/40 rounded-lg p-3.5 flex items-center justify-between">
+            <div>
+              <div class="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Net Realized Cash Benefit</div>
+              <div class="text-2xl font-bold text-white font-mono mt-0.5" id="recTotalSavings">$272,068 USD</div>
+              <div class="text-xs text-emerald-300 mt-0.5" id="recINRText">₹2.26 Crore INR • 8.3 Days Faster Plant Delivery</div>
+            </div>
+            <div class="text-right">
+              <span class="px-2 py-1 rounded bg-emerald-900/40 border border-emerald-700/60 text-emerald-300 font-mono text-[11px] font-medium">
+                OPTIMAL (CBC MILP)
+              </span>
+            </div>
+          </div>
+
+          <!-- Analytical Rationale -->
+          <p class="text-xs text-slate-300 leading-relaxed border-t border-slate-800/80 pt-2.5" id="recRationale">
+            Prescriptive divert to Dhamra Port eliminates 6.7 days of idle outer anchorage waiting. The avoided demurrage ($167,500) combined with shorter rail haulage to SAIL Rourkela ($126,202 saved) easily outweighs minor extra bunker steaming ($4,297).
+          </p>
+
+          <!-- Primary Execution CTA -->
+          <button onclick="openDocumentModal()" class="w-full py-2.5 px-4 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition flex items-center justify-center gap-2 shadow-sm">
+            <i data-lucide="file-check" class="w-4 h-4"></i>
+            Execute Voyage Diversion & Issue FOIS Rake Indent
+          </button>
+
+        </div>
+
+      </div>
+
+      <!-- Linear Programming Mathematical Proof Box -->
+      <div class="bg-surface-panel border border-surface-border rounded-xl p-4 flex flex-col gap-2.5">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+            <i data-lucide="cpu" class="w-4 h-4 text-blue-400"></i>
+            Mathematical TLC Optimization Formulation
+          </span>
+          <span class="text-[10px] text-slate-500 font-mono">PuLP / COIN-OR CBC</span>
+        </div>
+
+        <div class="text-xs text-slate-400 font-mono space-y-1 text-[11px]">
+          <div>min TLC(p) = C_ocean + C_bunker(p) + C_demurrage(p) + C_handling(p) + C_rail(p) + C_storage(p)</div>
+          <div class="text-slate-500">subject to: Draft_vessel (17.5m) ≤ MaxDraft(p), Stockout_risk = 0</div>
+          <div class="flex items-center justify-between text-slate-300 pt-1 border-t border-slate-800">
+            <span>Haldia Feasibility:</span>
+            <span class="text-red-400 font-semibold">INFEASIBLE (Draft limit 8.5m &lt; 17.5m)</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-300">
+            <span>Dhamra Feasibility:</span>
+            <span class="text-emerald-400 font-semibold">FEASIBLE (Draft limit 18.5m &gt; 17.5m)</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Official Maritime & Railway Documents Modal -->
+  <div id="documentModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-surface-panel border border-slate-700 rounded-xl max-w-3xl w-full max-h-[88vh] flex flex-col shadow-2xl">
+      
+      <!-- Modal Header -->
+      <div class="px-5 py-3.5 border-b border-slate-700 flex items-center justify-between bg-slate-900/60">
+        <div>
+          <h3 class="font-bold text-sm text-white flex items-center gap-2">
+            <i data-lucide="file-text" class="w-4 h-4 text-brand-400"></i>
+            Official Voyage Diversion & Railway Indent Documentation
+          </h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Automated documents citing Calcutta HC (SAIL vs Vizag Seaport, 2026) & Supreme Court precedents</p>
+        </div>
+        <button onclick="closeDocumentModal()" class="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Document Tabs -->
+      <div class="px-5 border-b border-slate-700 flex items-center gap-1 bg-slate-900/30 text-xs">
+        <button onclick="switchDocTab('fois')" id="docTabFois" class="px-3.5 py-2.5 font-medium border-b-2 border-brand-500 text-white transition">
+          1. Indian Railways FOIS e-Indent (39 BOXN Rakes)
+        </button>
+        <button onclick="switchDocTab('bimco')" id="docTabBimco" class="px-3.5 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-white transition">
+          2. BIMCO Charter Party Rerouting Order
+        </button>
+        <button onclick="switchDocTab('nor')" id="docTabNor" class="px-3.5 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-white transition">
+          3. Advance Notice of Readiness (NOR)
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-4 flex-1 overflow-y-auto">
+        <pre id="docContent" class="bg-slate-950 border border-slate-800/80 rounded-lg p-4 text-[11px] font-mono text-slate-200 whitespace-pre-wrap leading-relaxed select-all">
+Loading document...
+        </pre>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-5 py-3 border-t border-slate-700 flex items-center justify-between bg-slate-900/60">
+        <span class="text-[11px] text-slate-400">Ref: <span id="docRefNo" class="font-mono text-slate-200">CRIS-FOIS-EIND-9481234</span></span>
+        <div class="flex items-center gap-2">
+          <button onclick="copyDocumentToClipboard()" class="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 font-medium transition flex items-center gap-1.5">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span id="copyBtnText">Copy Text</span>
+          </button>
+          <button onclick="window.print()" class="px-3 py-1.5 rounded bg-brand-600 hover:bg-brand-500 text-xs text-white font-medium transition flex items-center gap-1.5">
+            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+            Print / PDF
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script>
+    let state = {
+      vessels: [],
+      ports: [],
+      plants: [],
+      summary: null,
+      forecast: null,
+      rail: null,
+      selectedVesselId: "VSL_STEEL_HORIZON",
+      currentOptimization: null,
+      activeDocType: "fois",
+      currentDocs: null
+    };
+
+    let map = null;
+    let baseLayerGroup = null;
+    let currentTileLayer = null;
+    let railLinesLayer = null;
+    let shippingLinesLayer = null;
+    let markersLayer = null;
+    let chartInstance = null;
+
+    // Tile URLs - Watermark Free!
+    const TILE_URLS = {
+      dark: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      sat: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      osm: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+    };
+
+    // Major Indian Railways Freight Corridors (ECoR / SER)
+    const RAIL_CORRIDORS = [
+      {
+        name: "Dhamra - Bhadrak - Sambalpur - Rourkela Ore Line",
+        coords: [[20.8290, 86.9630], [21.0574, 86.5150], [21.4669, 83.9812], [21.8554, 84.0062], [22.2259, 84.8640]],
+        color: "#f59e0b"
+      },
+      {
+        name: "Paradip - Cuttack - Sambalpur - Rourkela Main Line",
+        coords: [[20.2644, 86.6740], [20.4625, 85.8830], [21.4669, 83.9812], [21.8554, 84.0062], [22.2259, 84.8640]],
+        color: "#d97706"
+      },
+      {
+        name: "Visakhapatnam - Rayagada - Raipur - Bhilai Corridor",
+        coords: [[17.6868, 83.2185], [19.1670, 83.4160], [20.5000, 82.2000], [21.1938, 81.3857]],
+        color: "#f59e0b"
+      },
+      {
+        name: "Haldia - Kharagpur - Bokaro Freight Trunk",
+        coords: [[22.0250, 88.0680], [22.3395, 87.3256], [23.6693, 86.1511]],
+        color: "#b45309"
+      }
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      initMap();
+      fetchDashboardData();
+    });
+
+    function initMap() {
+      map = L.map('map', {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([17.8, 85.2], 5);
+
+      // Default to Esri World Dark Gray Base (Clean, high contrast, NO watermarks!)
+      currentTileLayer = L.tileLayer(TILE_URLS.dark, { maxZoom: 16 }).addTo(map);
+
+      railLinesLayer = L.layerGroup().addTo(map);
+      shippingLinesLayer = L.layerGroup().addTo(map);
+      markersLayer = L.layerGroup().addTo(map);
+
+      drawRailCorridors();
+    }
+
+    function setMapLayer(type) {
+      if (currentTileLayer) map.removeLayer(currentTileLayer);
+      currentTileLayer = L.tileLayer(TILE_URLS[type], { maxZoom: 16 }).addTo(map);
+
+      document.getElementById('layerBtnDark').className = type === 'dark' ? 'px-2 py-0.5 rounded bg-slate-800 text-white font-medium' : 'px-2 py-0.5 rounded text-slate-400 hover:text-white font-medium';
+      document.getElementById('layerBtnSat').className = type === 'sat' ? 'px-2 py-0.5 rounded bg-slate-800 text-white font-medium' : 'px-2 py-0.5 rounded text-slate-400 hover:text-white font-medium';
+      document.getElementById('layerBtnOsm').className = type === 'osm' ? 'px-2 py-0.5 rounded bg-slate-800 text-white font-medium' : 'px-2 py-0.5 rounded text-slate-400 hover:text-white font-medium';
+    }
+
+    function toggleLayer(layerName) {
+      if (layerName === 'rail') {
+        const checked = document.getElementById('chkRail').checked;
+        if (checked) map.addLayer(railLinesLayer); else map.removeLayer(railLinesLayer);
+      } else if (layerName === 'shipping') {
+        const checked = document.getElementById('chkShipping').checked;
+        if (checked) map.addLayer(shippingLinesLayer); else map.removeLayer(shippingLinesLayer);
+      }
+    }
+
+    function drawRailCorridors() {
+      railLinesLayer.clearLayers();
+
+      RAIL_CORRIDORS.forEach(corridor => {
+        // Base track
+        L.polyline(corridor.coords, {
+          color: '#1e293b',
+          weight: 4,
+          opacity: 0.8
+        }).addTo(railLinesLayer);
+
+        // Dashed railway line
+        const rail = L.polyline(corridor.coords, {
+          color: corridor.color,
+          weight: 2,
+          dashArray: '5, 5',
+          opacity: 0.9
+        }).addTo(railLinesLayer);
+
+        rail.bindTooltip('🚂 ' + corridor.name, { sticky: true, className: 'bg-slate-900 text-slate-200 text-xs border border-slate-700' });
+      });
+
+      // Subtle active BOXN freight train waypoint
+      const trainIcon = L.divIcon({
+        className: 'custom-train-marker',
+        html: '<div style="background:#f59e0b; color:#000; font-size:10px; font-weight:700; border-radius:4px; padding:1px 4px; border:1px solid #fff; box-shadow:0 2px 4px rgba(0,0,0,0.5);">BOXN-9042</div>',
+        iconSize: [68, 18],
+        iconAnchor: [34, 9]
+      });
+
+      const trainMarker = L.marker([21.4669, 83.9812], { icon: trainIcon }).addTo(railLinesLayer);
+      trainMarker.bindPopup(
+        '<div class="font-sans text-xs p-1">' +
+        '<strong class="text-sm font-semibold text-amber-400">IR Rake BOXN-ECoR-9042</strong><br/>' +
+        '<span class="text-slate-400">Locomotive:</span> WAG-9 (6000 HP)<br/>' +
+        '<span class="text-slate-400">Cargo:</span> 3,850 MT Australian Coking Coal<br/>' +
+        '<span class="text-slate-400">Route:</span> Dhamra Siding &rarr; SAIL Rourkela Siding<br/>' +
+        '<span class="text-slate-400">Speed:</span> 56 km/h (Clear Signal)' +
+        '</div>'
+      );
+    }
+
+    async function fetchDashboardData() {
+      try {
+        const [vesselsRes, portsRes, plantsRes, summaryRes, forecastRes, railRes] = await Promise.all([
+          fetch('/api/vessels').then(r => r.json()),
+          fetch('/api/ports').then(r => r.json()),
+          fetch('/api/plants').then(r => r.json()),
+          fetch('/api/summary').then(r => r.json()),
+          fetch('/api/forecast').then(r => r.json()),
+          fetch('/api/rail').then(r => r.json())
+        ]);
+
+        state.vessels = vesselsRes;
+        state.ports = portsRes;
+        state.plants = plantsRes;
+        state.summary = summaryRes;
+        state.forecast = forecastRes;
+        state.rail = railRes;
+      } catch (err) {
+        console.warn("Using embedded fallback seed data:", err);
+        if (typeof SEED_FALLBACK_DATA !== 'undefined') {
+          state.vessels = JSON.parse(JSON.stringify(SEED_FALLBACK_DATA.vessels));
+          state.ports = JSON.parse(JSON.stringify(SEED_FALLBACK_DATA.ports));
+          state.plants = JSON.parse(JSON.stringify(SEED_FALLBACK_DATA.plants));
+          state.summary = JSON.parse(JSON.stringify(SEED_FALLBACK_DATA.summary));
+          state.forecast = JSON.parse(JSON.stringify(SEED_FALLBACK_DATA.forecast));
+          state.rail = JSON.parse(JSON.stringify(SEED_FALLBACK_DATA.rail));
+        }
+      }
+
+      renderKPIs();
+      renderVesselPills();
+      renderMap();
+      renderOptimization();
+      renderForecastChart();
+      renderRailTable();
+      renderStockpiles();
+      lucide.createIcons();
+    }
+
+    function renderKPIs() {
+      if (!state.summary) return;
+      document.getElementById('kpiForex').textContent = '$' + state.summary.total_forex_saved_usd.toLocaleString() + ' USD';
+      document.getElementById('kpiForexINR').textContent = '₹' + state.summary.total_savings_inr_crore + ' Cr';
+      document.getElementById('kpiDays').textContent = state.summary.total_demurrage_days_avoided + ' Days';
+      document.getElementById('kpiVessels').textContent = state.summary.active_vessels_tracked + ' Bulk Carriers';
+    }
+
+    function renderVesselPills() {
+      const container = document.getElementById('vesselPills');
+      container.innerHTML = '';
+
+      state.vessels.forEach(v => {
+        const isSelected = v.id === state.selectedVesselId;
+        const isDivert = v.status === "DIVERT_RECOMMENDED";
+        
+        const btn = document.createElement('button');
+        btn.onclick = () => selectVessel(v.id);
+        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-2 transition ' +
+          (isSelected ? 'bg-slate-800 border-slate-600 text-white shadow-sm' : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200');
+
+        btn.innerHTML = 
+          '<span>' + v.name + '</span>' +
+          '<span class="text-[10px] text-slate-500">(' + v.vessel_class + ')</span>' +
+          (isDivert ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>' : '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>');
+
+        container.appendChild(btn);
+      });
+    }
+
+    function selectVessel(id) {
+      state.selectedVesselId = id;
+      renderVesselPills();
+      renderMap();
+      renderOptimization();
+    }
+
+    function renderMap() {
+      markersLayer.clearLayers();
+      shippingLinesLayer.clearLayers();
+
+      const selectedVessel = state.vessels.find(v => v.id === state.selectedVesselId) || state.vessels[0];
+
+      // 1. Ports
+      state.ports.forEach(port => {
+        const isCongested = port.status === "CONGESTED" || port.status === "CRITICAL";
+        const color = isCongested ? '#ef4444' : (port.status === "WEATHER_ALERT" ? '#f59e0b' : '#10b981');
+
+        const portIcon = L.divIcon({
+          className: 'port-marker',
+          html: '<div style="background:' + color + '; width:12px; height:12px; border-radius:50%; border:2px solid #ffffff; box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>',
+          iconSize: [12, 12],
+          iconAnchor: [6, 6]
+        });
+
+        const m = L.marker([port.lat, port.lon], { icon: portIcon }).addTo(markersLayer);
+        m.bindPopup(
+          '<div class="font-sans text-xs p-1 leading-relaxed">' +
+          '<div class="font-bold text-sm text-slate-100">' + port.name + ' (' + port.code + ')</div>' +
+          '<div class="text-slate-400 mt-1">Permissible Draft: <span class="text-slate-200">' + port.max_permissible_draft_m + 'm</span></div>' +
+          '<div class="text-slate-400">Outer Queue: <span class="font-semibold" style="color:' + color + '">' + port.anchorage_queue_vessels + ' vessels (' + port.avg_anchorage_wait_days + 'd wait)</span></div>' +
+          '<div class="text-slate-400">Discharge Rate: <span class="text-slate-200">' + port.discharge_rate_mt_day.toLocaleString() + ' MT/day</span></div>' +
+          '</div>'
+        );
+      });
+
+      // 2. Steel Plants
+      state.plants.forEach(plant => {
+        const plantIcon = L.divIcon({
+          className: 'plant-marker',
+          html: '<div style="background:#3b82f6; width:10px; height:10px; border-radius:2px; border:1.5px solid #93c5fd; box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>',
+          iconSize: [10, 10],
+          iconAnchor: [5, 5]
+        });
+
+        const m = L.marker([plant.lat, plant.lon], { icon: plantIcon }).addTo(markersLayer);
+        m.bindPopup(
+          '<div class="font-sans text-xs p-1 leading-relaxed">' +
+          '<div class="font-bold text-sm text-slate-100">' + plant.name + '</div>' +
+          '<div class="text-slate-400 mt-1">Stockpile: <span class="font-semibold text-slate-200">' + plant.stockpile_runway_days + ' Days</span> (' + plant.current_stockpile_mt.toLocaleString() + ' MT)</div>' +
+          '<div class="text-slate-400">Daily Consumption: <span class="text-slate-200">' + plant.daily_coking_coal_consumption_mt.toLocaleString() + ' MT/day</span></div>' +
+          '</div>'
+        );
+      });
+
+      // 3. Vessels
+      state.vessels.forEach(v => {
+        const isSelected = v.id === selectedVessel.id;
+        const isDivert = v.status === "DIVERT_RECOMMENDED";
+
+        const vesselIcon = L.divIcon({
+          className: 'vessel-marker',
+          html: '<div style="position:relative; width:16px; height:16px;">' +
+            (isSelected ? '<div class="vessel-halo"></div>' : '') +
+            '<div style="background:' + (isDivert ? '#38bdf8' : '#60a5fa') + '; width:14px; height:14px; border-radius:50%; border:2px solid #ffffff; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:bold; color:#000;">▲</div>' +
+            '</div>',
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
+        });
+
+        const vMarker = L.marker([v.current_lat, v.current_lon], { icon: vesselIcon }).addTo(markersLayer);
+        vMarker.bindPopup(
+          '<div class="font-sans text-xs p-1 leading-relaxed">' +
+          '<div class="font-bold text-sm text-slate-100">' + v.name + '</div>' +
+          '<div class="text-slate-400 mt-1">Class / Draft: <span class="text-slate-200">' + v.vessel_class + ' (' + v.current_draft + 'm)</span></div>' +
+          '<div class="text-slate-400">Cargo: <span class="text-slate-200">' + v.cargo_quantity_mt.toLocaleString() + ' MT ' + v.cargo_type + '</span></div>' +
+          '<div class="text-slate-400">Destination: <span class="text-slate-200">' + v.destination_port + ' &rarr; ' + v.destination_plant + '</span></div>' +
+          '<div class="text-slate-400">Status: <span class="font-semibold text-brand-400">' + v.status + '</span></div>' +
+          '</div>'
+        );
+
+        if (isSelected && v.prescriptive_evaluation) {
+          const evalRes = v.prescriptive_evaluation;
+          const basePort = state.ports.find(p => p.id === evalRes.baseline_port_id);
+          const optPort = state.ports.find(p => p.id === evalRes.recommended_port_id);
+
+          // Original shipping route (red line)
+          if (basePort) {
+            L.polyline([[v.current_lat, v.current_lon], [basePort.lat, basePort.lon]], {
+              color: '#ef4444',
+              weight: 2.5,
+              dashArray: '4, 6',
+              opacity: 0.7
+            }).addTo(shippingLinesLayer);
+          }
+
+          // Diverted shipping route (blue/cyan line)
+          if (optPort && evalRes.prescriptive_action === "DIVERT_RECOMMENDED") {
+            L.polyline([[v.current_lat, v.current_lon], [optPort.lat, optPort.lon]], {
+              color: '#38bdf8',
+              weight: 3,
+              dashArray: '6, 6',
+              opacity: 0.95
+            }).addTo(shippingLinesLayer);
+          }
+        }
+      });
+    }
+
+    function renderOptimization() {
+      const selectedVessel = state.vessels.find(v => v.id === state.selectedVesselId) || state.vessels[0];
+      if (!selectedVessel || !selectedVessel.prescriptive_evaluation) return;
+
+      const opt = selectedVessel.prescriptive_evaluation;
+      state.currentOptimization = opt;
+
+      // Update HUD
+      document.getElementById('hudVesselName').textContent = selectedVessel.name.toUpperCase();
+      document.getElementById('hudVesselStats').textContent = 
+        'Draft: ' + selectedVessel.current_draft + 'm • SOG: ' + selectedVessel.speed_knots + ' kts • Cargo: ' + selectedVessel.cargo_quantity_mt.toLocaleString() + ' MT ' + selectedVessel.cargo_type;
+
+      // Update Action Card
+      document.getElementById('recActionTitle').textContent = opt.prescriptive_action === "DIVERT_RECOMMENDED" 
+        ? 'DIVERT TO ' + opt.recommended_port_name.toUpperCase()
+        : 'MAINTAIN VOYAGE TO ' + opt.baseline_port_name.toUpperCase();
+
+      document.getElementById('recActionSub').textContent = 
+        selectedVessel.name + ' • ' + selectedVessel.cargo_quantity_mt.toLocaleString() + ' MT for ' + opt.destination_plant;
+
+      // Comparison Table
+      const base = opt.port_evaluations.find(p => p.port_id === opt.baseline_port_id) || opt.port_evaluations[0];
+      const rec = opt.port_evaluations.find(p => p.port_id === opt.recommended_port_id) || opt.port_evaluations[1];
+
+      document.getElementById('cmpBaseQueue').textContent = base.port_wait_days + ' Days';
+      document.getElementById('cmpOptQueue').textContent = rec.port_wait_days + ' Days';
+      document.getElementById('cmpBaseDemurrage').textContent = '$' + base.port_demurrage_usd.toLocaleString();
+      document.getElementById('cmpOptDemurrage').textContent = '$' + rec.port_demurrage_usd.toLocaleString();
+      
+      document.getElementById('cmpBaseRailDist').textContent = '462 km';
+      document.getElementById('cmpOptRailDist').textContent = '418 km';
+      document.getElementById('cmpBaseRailCost').textContent = '$' + base.inland_rail_freight_usd.toLocaleString();
+      document.getElementById('cmpOptRailCost').textContent = '$' + rec.inland_rail_freight_usd.toLocaleString();
+      
+      document.getElementById('cmpBaseHandling').textContent = '$' + base.port_handling_charges_usd.toLocaleString();
+      document.getElementById('cmpOptHandling').textContent = '$' + rec.port_handling_charges_usd.toLocaleString();
+      
+      document.getElementById('cmpBaseTLC').textContent = '$' + base.total_landed_cost_usd.toLocaleString();
+      document.getElementById('cmpOptTLC').textContent = '$' + rec.total_landed_cost_usd.toLocaleString();
+      document.getElementById('cmpNetDiff').textContent = '-$' + opt.net_savings_usd.toLocaleString();
+
+      // Net Callout
+      document.getElementById('recTotalSavings').textContent = '$' + opt.net_savings_usd.toLocaleString() + ' USD';
+      document.getElementById('recINRText').textContent = '₹' + opt.net_savings_inr_crore + ' Crore INR • ' + opt.days_saved + ' Days Faster Plant Delivery';
+      document.getElementById('recRationale').textContent = opt.reasoning;
+    }
+
+    function renderRailTable() {
+      if (!state.rail || !state.rail.nodes) return;
+      const tbody = document.getElementById('railTableBody');
+      tbody.innerHTML = '';
+
+      state.rail.nodes.forEach(node => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 transition";
+        tr.innerHTML = 
+          '<td class="py-2.5 px-3 font-sans font-medium text-slate-100 flex items-center gap-1.5">' +
+            '<i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-500"></i>' + node.port_name +
+          '</td>' +
+          '<td class="py-2.5 px-3 text-amber-400 font-semibold">' + node.rakes_available_today + ' BOXN Rakes</td>' +
+          '<td class="py-2.5 px-3">' + node.daily_evacuation_capacity_mt.toLocaleString() + ' MT/day</td>' +
+          '<td class="py-2.5 px-3">' + (node.port_id === 'PRT_DHAMRA' ? '418 km' : (node.port_id === 'PRT_PARADIP' ? '462 km' : '815 km')) + '</td>' +
+          '<td class="py-2.5 px-3 text-emerald-400 font-semibold">₹' + node.freight_tariff_inr_mt + ' / MT</td>' +
+          '<td class="py-2.5 px-3">' + node.avg_turnaround_hours + ' hrs</td>' +
+          '<td class="py-2.5 px-3">' +
+            '<span class="px-2 py-0.5 rounded text-[10px] font-medium font-sans ' + (node.status === 'NORMAL' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20') + '">' +
+              node.status +
+            '</span>' +
+          '</td>';
+        tbody.appendChild(tr);
+      });
+      lucide.createIcons();
+    }
+
+    function renderStockpiles() {
+      const grid = document.getElementById('stockpileGrid');
+      grid.innerHTML = '';
+
+      state.plants.forEach(plant => {
+        const isCritical = plant.stockpile_runway_days <= plant.critical_buffer_threshold_days;
+        const pct = Math.min(100, Math.round((plant.stockpile_runway_days / 20.0) * 100));
+
+        const card = document.createElement('div');
+        card.className = "bg-slate-900/60 border border-slate-800/80 rounded-lg p-3 text-xs flex flex-col gap-2";
+        card.innerHTML = 
+          '<div class="flex items-center justify-between">' +
+            '<div>' +
+              '<div class="font-semibold text-slate-200">' + plant.short_name + '</div>' +
+              '<div class="text-[10px] text-slate-400">' + plant.company + ' • Burn: ' + plant.daily_coking_coal_consumption_mt.toLocaleString() + ' MT/d</div>' +
+            '</div>' +
+            '<span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold ' + (isCritical ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-slate-800 text-slate-300') + '">' +
+              plant.stockpile_runway_days + ' Days' +
+            '</span>' +
+          '</div>' +
+          '<div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">' +
+            '<div class="h-full rounded-full ' + (isCritical ? 'bg-red-500' : 'bg-brand-500') + '" style="width:' + pct + '%"></div>' +
+          '</div>';
+        grid.appendChild(card);
+      });
+    }
+
+    function renderForecastChart() {
+      if (!state.forecast) return;
+      const ctx = document.getElementById('freightChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      const histLabels = state.forecast.history.map(h => h.date.slice(5));
+      const foreLabels = state.forecast.forecast.map(f => f.date.slice(5));
+      const allLabels = [...histLabels, ...foreLabels];
+
+      const histBCI = state.forecast.history.map(h => h.bci);
+      const foreBCIP50 = [...new Array(histLabels.length - 1).fill(null), histBCI[histBCI.length - 1], ...state.forecast.forecast.map(f => f.bci_p50)];
+      const foreBCIP90 = [...new Array(histLabels.length - 1).fill(null), histBCI[histBCI.length - 1], ...state.forecast.forecast.map(f => f.bci_p90)];
+      const foreBCIP10 = [...new Array(histLabels.length - 1).fill(null), histBCI[histBCI.length - 1], ...state.forecast.forecast.map(f => f.bci_p10)];
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: allLabels,
+          datasets: [
+            {
+              label: 'Historical BCI (Actual)',
+              data: [...histBCI, ...new Array(foreLabels.length).fill(null)],
+              borderColor: '#64748b',
+              borderWidth: 1.5,
+              pointRadius: 0,
+              tension: 0.1
+            },
+            {
+              label: 'ML Forecast BCI (P50)',
+              data: foreBCIP50,
+              borderColor: '#38bdf8',
+              borderWidth: 2,
+              pointRadius: 0,
+              tension: 0.1
+            },
+            {
+              label: '95% Confidence Band',
+              data: foreBCIP90,
+              borderColor: 'rgba(56, 189, 248, 0.2)',
+              borderWidth: 1,
+              borderDash: [3, 3],
+              pointRadius: 0,
+              fill: '+1',
+              backgroundColor: 'rgba(56, 189, 248, 0.05)'
+            },
+            {
+              label: 'P10 Lower',
+              data: foreBCIP10,
+              borderColor: 'rgba(56, 189, 248, 0.2)',
+              borderWidth: 1,
+              borderDash: [3, 3],
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { labels: { boxWidth: 10, color: '#94a3b8', font: { size: 10, family: 'Inter' } } }
+          },
+          scales: {
+            x: { ticks: { maxTicksLimit: 8, color: '#64748b', font: { size: 9, family: 'Inter' } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+            y: { ticks: { color: '#64748b', font: { size: 9, family: 'Inter' } }, grid: { color: 'rgba(255,255,255,0.03)' } }
+          }
+        }
+      });
+    }
+
+    function switchWorkspaceTab(tab) {
+      document.getElementById('tabContentRail').classList.add('hidden');
+      document.getElementById('tabContentForecast').classList.add('hidden');
+      document.getElementById('tabContentStockpile').classList.add('hidden');
+
+      document.getElementById('tabBtnRail').className = 'px-3.5 py-2.5 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center gap-2';
+      document.getElementById('tabBtnForecast').className = 'px-3.5 py-2.5 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center gap-2';
+      document.getElementById('tabBtnStockpile').className = 'px-3.5 py-2.5 text-xs font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center gap-2';
+
+      if (tab === 'rail') {
+        document.getElementById('tabContentRail').classList.remove('hidden');
+        document.getElementById('tabBtnRail').className = 'px-3.5 py-2.5 text-xs font-medium border-b-2 border-brand-500 text-white transition flex items-center gap-2';
+      } else if (tab === 'forecast') {
+        document.getElementById('tabContentForecast').classList.remove('hidden');
+        document.getElementById('tabBtnForecast').className = 'px-3.5 py-2.5 text-xs font-medium border-b-2 border-brand-500 text-white transition flex items-center gap-2';
+      } else if (tab === 'stockpile') {
+        document.getElementById('tabContentStockpile').classList.remove('hidden');
+        document.getElementById('tabBtnStockpile').className = 'px-3.5 py-2.5 text-xs font-medium border-b-2 border-brand-500 text-white transition flex items-center gap-2';
+      }
+      lucide.createIcons();
+    }
+
+    async function triggerScenario(type) {
+      try {
+        await fetch('/api/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scenario: type })
+        });
+        await fetchDashboardData();
+      } catch (err) {
+        if (type === 'paradip_congestion') {
+          const p = state.ports.find(x => x.id === 'PRT_PARADIP');
+          if (p) { p.status = 'CRITICAL'; p.avg_anchorage_wait_days = 8.8; p.anchorage_queue_vessels = 18; }
+        } else if (type === 'rail_shortage') {
+          if (state.rail && state.rail.nodes) {
+            const pNode = state.rail.nodes.find(n => n.port_id === 'PRT_PARADIP');
+            if (pNode) { pNode.rakes_available_today = 2; pNode.status = 'CRITICAL_SHORTAGE'; }
+          }
+        } else if (type === 'reset') {
+          if (typeof SEED_FALLBACK_DATA !== 'undefined') {
+            state.ports = JSON.parse(JSON.stringify(SEED_FALLBACK_DATA.ports));
+            state.summary = JSON.parse(JSON.stringify(SEED_FALLBACK_DATA.summary));
+            state.rail = JSON.parse(JSON.stringify(SEED_FALLBACK_DATA.rail));
+          }
+        }
+        renderKPIs();
+        renderMap();
+        renderOptimization();
+        renderRailTable();
+        lucide.createIcons();
+      }
+    }
+
+    async function openDocumentModal() {
+      const selectedVessel = state.vessels.find(v => v.id === state.selectedVesselId) || state.vessels[0];
+      if (!selectedVessel || !selectedVessel.prescriptive_evaluation) return;
+
+      const opt = selectedVessel.prescriptive_evaluation;
+
+      try {
+        const res = await fetch('/api/documents/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vessel_id: selectedVessel.id,
+            target_port_id: opt.recommended_port_id,
+            destination_plant_id: selectedVessel.destination_plant
+          })
+        }).then(r => r.json());
+        state.currentDocs = res;
+      } catch (err) {
+        state.currentDocs = {
+          ref_no: 'CRIS-FOIS-EIND-' + selectedVessel.imo + '-2026',
+          fois_indent: '================================================================================\n' +
+            'INDIAN RAILWAYS - FREIGHT OPERATIONS INFORMATION SYSTEM (FOIS / CRIS)\n' +
+            'ELECTRONIC RAKE REQUISITION INDENT (BOXN / BOXNHL)\n' +
+            'INDENT TRANSMISSION ID: CRIS-FOIS-EIND-' + selectedVessel.imo + '-09061330\n' +
+            '================================================================================\n' +
+            'RAILWAY DIVISION: SOUTH EASTERN RAILWAY (SER) / EAST COAST RAILWAY (ECoR)\n' +
+            'ORIGIN SIDING: ' + opt.recommended_port_name.toUpperCase() + ' RAIL BULK SIDING\n' +
+            'DESTINATION SIDING: ' + opt.destination_plant.toUpperCase() + ' SIDING\n\n' +
+            'COMMODITY: Class 140-B Imported Coking Coal\n' +
+            'TOTAL TONNAGE: 150,000 Metric Tonnes\n' +
+            'RAKES ALLOCATED: 39 BOXN Rakes (59 wagons each, ~3,850 MT capacity)\n' +
+            'PLANNED EVACUATION: 10 Rakes/Day (Discharge turnaround: 3.9 Days)\n' +
+            'ROUTE DISTANCE: 418.0 km (44 km shorter than Paradip route)\n' +
+            'FREIGHT SAVINGS: ₹1.05 Crore INR ($126,202 USD) saved on rail tariff.\n\n' +
+            'FOIS CLEARANCE: APPROVED // QUEUED FOR ADVANCE WAG-9 ENGINE PLACEMENT',
+          bimco_reroute: '================================================================================\n' +
+            'VOYAGE RECHARTERING & DIVERSION DIRECTIVE\n' +
+            'ISSUED BY: OCEANSTEEL AI CHARTERING COMMAND CENTER (ON BEHALF OF CHARTERERS)\n' +
+            'DOCUMENT REF: OSA-RR-' + selectedVessel.imo + '-2026\n' +
+            '================================================================================\n\n' +
+            'TO: MASTER, ' + selectedVessel.name.toUpperCase() + ' (IMO: ' + selectedVessel.imo + ')\n' +
+            'NOMINATED DISPORT: ' + opt.recommended_port_name.toUpperCase() + ' (BERTH DRAFT: 18.5m)\n\n' +
+            'Under Clause 18 of standard BIMCO GENCON / C(ORE)7 liberties clause and\n' +
+            'Calcutta High Court (SAIL vs. Vizag Seaport, 2026) precedent,\n' +
+            'proceed to Dhamra Port to mitigate unreasonable outer anchorage detention.\n\n' +
+            'Net Financial Landed Cost Savings: $' + opt.net_savings_usd.toLocaleString() + ' USD (INR ' + opt.net_savings_inr_crore + ' Crore).',
+          pre_nor: '================================================================================\n' +
+            'ADVANCE NOTICE OF READINESS (PRE-NOR)\n' +
+            '================================================================================\n' +
+            'VESSEL: ' + selectedVessel.name.toUpperCase() + ' (IMO: ' + selectedVessel.imo + ')\n' +
+            'CARGO: ' + selectedVessel.cargo_quantity_mt.toLocaleString() + ' MT Hard Coking Coal\n' +
+            'DESTINATION: ' + opt.recommended_port_name.toUpperCase() + '\n' +
+            'All cargo holds inspected and seaworthy in all respects.'
+        };
+      }
+
+      document.getElementById('docRefNo').textContent = state.currentDocs.ref_no || 'CRIS-FOIS-EIND-9481234';
+      switchDocTab('fois');
+      document.getElementById('documentModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeDocumentModal() {
+      document.getElementById('documentModal').classList.add('hidden');
+    }
+
+    function switchDocTab(type) {
+      state.activeDocType = type;
+      const tabFois = document.getElementById('docTabFois');
+      const tabBimco = document.getElementById('docTabBimco');
+      const tabNor = document.getElementById('docTabNor');
+      const content = document.getElementById('docContent');
+
+      tabFois.className = 'px-3.5 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-white transition';
+      tabBimco.className = 'px-3.5 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-white transition';
+      tabNor.className = 'px-3.5 py-2.5 font-medium border-b-2 border-transparent text-slate-400 hover:text-white transition';
+
+      if (type === 'fois') {
+        tabFois.className = 'px-3.5 py-2.5 font-medium border-b-2 border-brand-500 text-white transition';
+        content.textContent = state.currentDocs ? state.currentDocs.fois_indent : "Loading...";
+      } else if (type === 'bimco') {
+        tabBimco.className = 'px-3.5 py-2.5 font-medium border-b-2 border-brand-500 text-white transition';
+        content.textContent = state.currentDocs ? state.currentDocs.bimco_reroute : "Loading...";
+      } else if (type === 'nor') {
+        tabNor.className = 'px-3.5 py-2.5 font-medium border-b-2 border-brand-500 text-white transition';
+        content.textContent = state.currentDocs ? state.currentDocs.pre_nor : "Loading...";
+      }
+    }
+
+    function copyDocumentToClipboard() {
+      const content = document.getElementById('docContent').textContent;
+      navigator.clipboard.writeText(content).then(() => {
+        const btnText = document.getElementById('copyBtnText');
+        btnText.textContent = "Copied!";
+        setTimeout(() => { btnText.textContent = "Copy Text"; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
