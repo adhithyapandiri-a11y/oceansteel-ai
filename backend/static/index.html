@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OceanSteel AI — Smart Port & Train Routing for Indian Steel</title>
   
-  <!-- Inter & JetBrains Mono Google Fonts -->
+  <!-- Google Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
@@ -46,11 +46,28 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Google Earth Satellite Styling */
-    .leaflet-container {
-      background: #091220 !important;
+    /* Fixed Map Height & Stacking Isolation */
+    #map-wrapper {
+      position: relative;
+      width: 100%;
+      height: 580px;
+      isolation: isolate;
+      z-index: 1;
+      border-radius: 0 0 16px 16px;
+      overflow: hidden;
+      background: #091322;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #091322 !important;
       font-family: 'Inter', sans-serif !important;
-      border-radius: 16px;
+    }
+
+    /* High Z-Index for Modals to ALWAYS overlay Leaflet */
+    .app-modal {
+      z-index: 9999 !important;
     }
 
     /* Clean Crisp Popups */
@@ -59,7 +76,7 @@
       color: #0f172a !important;
       border: 1px solid #e2e8f0 !important;
       border-radius: 12px !important;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2) !important;
+      box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.25) !important;
       padding: 0 !important;
       overflow: hidden;
     }
@@ -78,11 +95,12 @@
       position: absolute;
       border-radius: 50%;
       border: 2px solid #38bdf8;
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       top: -9px;
       left: -9px;
       animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      pointer-events: none;
     }
 
     @keyframes pulse-ring {
@@ -102,9 +120,9 @@
   <!-- ========================================================================= -->
   <!-- 1. CLEAN NAVIGATION BAR -->
   <!-- ========================================================================= -->
-  <header class="h-16 bg-white border-b border-slate-200 px-5 flex items-center justify-between sticky top-0 z-50 shadow-xs">
+  <header class="h-16 bg-white border-b border-slate-200 px-5 flex items-center justify-between sticky top-0 z-40 shadow-xs">
     
-    <!-- Brand -->
+    <!-- Brand & Title -->
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm ring-2 ring-blue-100">
         <i data-lucide="compass" class="w-5 h-5"></i>
@@ -120,7 +138,7 @@
       </div>
     </div>
 
-    <!-- 3 Big Simple Numbers (No clutter, immediate understanding!) -->
+    <!-- 3 Big Simple Numbers (Instant clarity!) -->
     <div class="hidden lg:flex items-center gap-6">
       <div class="text-right">
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Money Saved on this Voyage</div>
@@ -173,14 +191,14 @@
       <div class="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 text-xs">
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span class="font-bold text-slate-800">Live Satellite View &bull; Bay of Bengal</span>
+          <span class="font-bold text-slate-800">Satellite View &bull; Bay of Bengal & East Coast</span>
           <span class="text-slate-400 hidden sm:inline">|</span>
-          <span class="text-slate-500 text-[11px] hidden sm:inline">Tracks ships & trains heading to Indian steel mills</span>
+          <span class="text-slate-500 text-[11px] hidden sm:inline">Real-time ship & train routes</span>
         </div>
 
         <!-- Quick Camera Presets -->
         <div class="flex items-center gap-1.5">
-          <span class="text-[10px] font-bold text-slate-400 uppercase hidden md:inline">Zoom:</span>
+          <span class="text-[10px] font-bold text-slate-400 uppercase hidden md:inline">Focus:</span>
           <button onclick="flyToLocation('vessel')" class="px-2.5 py-1 text-xs font-bold bg-blue-50 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-100 transition">
             🚢 Ship
           </button>
@@ -188,16 +206,16 @@
             ⚓ Ports
           </button>
           <button onclick="flyToLocation('ocean')" class="px-2.5 py-1 text-xs font-semibold bg-white text-slate-700 rounded-md border border-slate-200 hover:bg-slate-50 transition">
-            🌐 All Routes
+            🌐 Overview
           </button>
         </div>
       </div>
 
-      <!-- Map Container -->
-      <div class="relative flex-1 min-h-[560px]">
-        <div id="map" class="w-full h-full"></div>
+      <!-- Map Container with isolated stacking context -->
+      <div id="map-wrapper">
+        <div id="map"></div>
 
-        <!-- Floating Target Ship Card (Clear & understandable) -->
+        <!-- Floating Target Ship Card (Clean & intuitive) -->
         <div class="absolute bottom-4 left-4 right-4 z-[400] bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl p-3 shadow-md flex items-center justify-between text-xs">
           <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-lg shrink-0">
@@ -206,10 +224,10 @@
             <div>
               <div class="font-extrabold text-slate-900 text-sm flex items-center gap-2">
                 <span id="hudVesselName">MV Steel Horizon</span>
-                <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-700">Capesize Carrier</span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-700">Capesize Bulk Carrier</span>
               </div>
               <div class="text-slate-500 text-[11.5px] mt-0.5" id="hudVesselStats">
-                Carrying 150,000 MT Coking Coal from Australia &bull; Heading towards India
+                Carrying 150,000 MT Coking Coal from Australia &bull; ETA in 11 days
               </div>
             </div>
           </div>
@@ -256,7 +274,7 @@
           <div class="p-3.5 rounded-xl border border-red-200 bg-red-50/40 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between mb-2">
-                <span class="font-extrabold text-xs text-red-900">❌ Original Plan: Paradip</span>
+                <span class="font-extrabold text-xs text-red-900">❌ Original: Paradip</span>
                 <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-200 text-red-800">JAMMED</span>
               </div>
               <ul class="space-y-1.5 text-xs text-slate-700">
@@ -396,10 +414,10 @@
   </main>
 
   <!-- ========================================================================= -->
-  <!-- 3. "HOW IT WORKS" 1-MINUTE EXPLAINER MODAL -->
+  <!-- 3. "HOW IT WORKS" 1-MINUTE EXPLAINER MODAL (z-[9999] so it ALWAYS overlays map!) -->
   <!-- ========================================================================= -->
-  <div id="explainerModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+  <div id="explainerModal" class="app-modal fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden relative">
       
       <!-- Header -->
       <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
@@ -410,7 +428,7 @@
           </h3>
           <p class="text-xs text-slate-500 mt-0.5">SIH 2026 Problem Statement: SIH262006</p>
         </div>
-        <button onclick="closeExplainerModal()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition">
+        <button onclick="closeExplainerModal()" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -461,10 +479,10 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- 4. OFFICIAL LEGAL & RAILWAY DOCUMENTS MODAL -->
+  <!-- 4. OFFICIAL LEGAL & RAILWAY DOCUMENTS MODAL (z-[9999] so it ALWAYS overlays map!) -->
   <!-- ========================================================================= -->
-  <div id="documentModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="bg-white border border-slate-200 rounded-2xl max-w-3xl w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+  <div id="documentModal" class="app-modal fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-3xl w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative">
       
       <!-- Header -->
       <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
@@ -475,7 +493,7 @@
           </h3>
           <p class="text-[11px] text-slate-500 mt-0.5">Backed by Calcutta High Court (SAIL vs Vizag Seaport, 2026) and Supreme Court precedents</p>
         </div>
-        <button onclick="closeDocumentModal()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition">
+        <button onclick="closeDocumentModal()" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
@@ -541,7 +559,7 @@ Loading document...
     let markersLayer = null;
     let chartInstance = null;
 
-    // Google Earth Style High-Res Satellite Tiles + Crisp Boundary Labels
+    // Google Earth Style High-Res Satellite Tiles + Clean Administrative Labels
     const TILE_SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     const TILE_LABELS = 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
 
@@ -571,11 +589,15 @@ Loading document...
     });
 
     function initMap() {
-      // Centered on Bay of Bengal & East Coast of India
+      // Centered on Bay of Bengal & East Coast of India with strict bounds
       map = L.map('map', {
         zoomControl: true,
-        attributionControl: false
-      }).setView([17.0, 86.5], 5);
+        attributionControl: false,
+        minZoom: 4,
+        maxZoom: 16,
+        maxBounds: [[-10, 65], [32, 110]], // Bounded to Indian Ocean & Bay of Bengal — CANNOT zoom out to Antarctica or empty black space!
+        maxBoundsViscosity: 1.0
+      }).setView([17.8, 86.2], 5.5);
 
       // Google Earth Satellite Base Layer
       L.tileLayer(TILE_SAT, { maxZoom: 18 }).addTo(map);
@@ -588,17 +610,22 @@ Loading document...
       markersLayer = L.layerGroup().addTo(map);
 
       drawRailCorridors();
+
+      // Ensure proper sizing
+      setTimeout(() => {
+        if (map) map.invalidateSize();
+      }, 250);
     }
 
     function flyToLocation(preset) {
       if (!map) return;
       if (preset === 'ocean') {
-        map.flyTo([13.0, 88.5], 4, { duration: 1 });
+        map.flyTo([16.5, 87.0], 5, { duration: 0.8 });
       } else if (preset === 'vessel') {
         const v = state.vessels.find(x => x.id === state.selectedVesselId) || state.vessels[0];
-        if (v) map.flyTo([v.current_lat, v.current_lon], 7, { duration: 1 });
+        if (v) map.flyTo([v.current_lat, v.current_lon], 7, { duration: 0.8 });
       } else if (preset === 'ports') {
-        map.flyTo([20.4, 86.8], 7, { duration: 1 });
+        map.flyTo([20.4, 86.8], 6.5, { duration: 0.8 });
       }
     }
 
@@ -679,6 +706,10 @@ Loading document...
       renderRailTable();
       renderForecastChart();
       lucide.createIcons();
+
+      setTimeout(() => {
+        if (map) map.invalidateSize();
+      }, 300);
     }
 
     function renderMap() {
@@ -687,21 +718,28 @@ Loading document...
 
       const selectedVessel = state.vessels.find(v => v.id === state.selectedVesselId) || state.vessels[0];
 
-      // 1. Render Ports with clear status badges
+      // 1. Render Ports: Clean, sleek beacons (NO colliding giant text boxes!)
       state.ports.forEach(port => {
         const isCongested = port.status === "CONGESTED" || port.status === "CRITICAL";
+        const isDhamra = port.id === "PRT_DHAMRA";
+        const isParadip = port.id === "PRT_PARADIP";
         const color = isCongested ? '#ef4444' : '#10b981';
-        const badgeBg = isCongested ? '#dc2626' : '#059669';
+
+        // Only show small, clear badges on key ports (Dhamra & Paradip) to prevent overlap!
+        let labelHtml = '';
+        if (isDhamra) {
+          labelHtml = '<div style="background:#059669; color:#ffffff; font-size:9.5px; font-weight:800; border-radius:4px; padding:1px 6px; margin-top:2px; white-space:nowrap; border:1px solid #ffffff; box-shadow:0 1px 4px rgba(0,0,0,0.5);">🟢 Dhamra (Free Berth)</div>';
+        } else if (isParadip) {
+          labelHtml = '<div style="background:#dc2626; color:#ffffff; font-size:9.5px; font-weight:800; border-radius:4px; padding:1px 6px; margin-top:2px; white-space:nowrap; border:1px solid #ffffff; box-shadow:0 1px 4px rgba(0,0,0,0.5);">🔴 Paradip (7d Delay)</div>';
+        }
 
         const portIcon = L.divIcon({
           className: 'port-marker',
           html: '<div style="position:relative; display:flex; flex-direction:column; align-items:center;">' +
             '<div style="background:' + color + '; width:14px; height:14px; border-radius:50%; border:2px solid #ffffff; box-shadow:0 2px 6px rgba(0,0,0,0.6);"></div>' +
-            '<div style="background:' + badgeBg + '; color:#ffffff; font-size:9px; font-weight:800; border-radius:4px; padding:1px 5px; margin-top:2px; white-space:nowrap; border:1px solid #ffffff;">' + 
-            port.name + ' (' + (isCongested ? port.avg_anchorage_wait_days + 'd delay ⚠️' : 'Free Berth ⚡') + ')' +
-            '</div>' +
+            labelHtml +
             '</div>',
-          iconSize: [80, 30],
+          iconSize: [80, 26],
           iconAnchor: [40, 7]
         });
 
@@ -711,22 +749,26 @@ Loading document...
           '<div class="font-bold text-sm text-slate-900">' + port.name + '</div>' +
           '<div class="text-slate-500 mt-1">Water Depth (Draft): <strong class="text-slate-800">' + port.max_permissible_draft_m + ' meters</strong></div>' +
           '<div class="text-slate-500">Ships Waiting in Line: <strong style="color:' + color + '">' + port.anchorage_queue_vessels + ' vessels (' + port.avg_anchorage_wait_days + ' days wait)</strong></div>' +
-          '<div class="text-slate-500">Connected Rail: <strong class="text-slate-800">' + port.rail_siding_name + '</strong></div>' +
+          '<div class="text-slate-500">Connecting Rail: <strong class="text-slate-800">' + port.rail_siding_name + '</strong></div>' +
           '</div>'
         );
       });
 
-      // 2. Render Steel Plants
+      // 2. Render Steel Plants: Sleek pin
       state.plants.forEach(plant => {
+        const isRourkela = plant.id === "PLT_SAIL_ROURKELA";
+        
+        let plantLabel = isRourkela 
+          ? '<div style="background:#1e3a8a; color:#ffffff; font-size:9.5px; font-weight:800; border-radius:4px; padding:1px 6px; margin-top:2px; white-space:nowrap; border:1px solid #ffffff; box-shadow:0 1px 4px rgba(0,0,0,0.5);">🏭 SAIL Rourkela</div>' 
+          : '';
+
         const plantIcon = L.divIcon({
           className: 'plant-marker',
           html: '<div style="position:relative; display:flex; flex-direction:column; align-items:center;">' +
             '<div style="background:#2563eb; width:12px; height:12px; border-radius:3px; border:2px solid #ffffff; box-shadow:0 2px 6px rgba(0,0,0,0.6);"></div>' +
-            '<div style="background:#1e3a8a; color:#ffffff; font-size:9px; font-weight:800; border-radius:4px; padding:1px 5px; margin-top:2px; white-space:nowrap; border:1px solid #ffffff;">' +
-            '🏭 ' + plant.short_name +
-            '</div>' +
+            plantLabel +
             '</div>',
-          iconSize: [90, 28],
+          iconSize: [90, 26],
           iconAnchor: [45, 6]
         });
 
@@ -746,14 +788,14 @@ Loading document...
 
         const vesselIcon = L.divIcon({
           className: 'vessel-marker',
-          html: '<div style="position:relative; width:22px; height:22px; display:flex; align-items:center; justify-content:center;">' +
+          html: '<div style="position:relative; width:24px; height:24px; display:flex; align-items:center; justify-content:center;">' +
             '<div class="vessel-pulse"></div>' +
-            '<div style="background:#0284c7; width:20px; height:20px; border-radius:50%; border:2px solid #ffffff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold; color:#ffffff; box-shadow:0 2px 6px rgba(0,0,0,0.6);">' +
+            '<div style="background:#0284c7; width:20px; height:20px; border-radius:50%; border:2px solid #ffffff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:bold; color:#ffffff; box-shadow:0 2px 6px rgba(0,0,0,0.6);">' +
             '🚢' +
             '</div>' +
             '</div>',
-          iconSize: [22, 22],
-          iconAnchor: [11, 11]
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
         });
 
         const vMarker = L.marker([v.current_lat, v.current_lon], { icon: vesselIcon }).addTo(markersLayer);
@@ -762,7 +804,7 @@ Loading document...
           '<div class="font-extrabold text-sm text-slate-900">🚢 ' + v.name + '</div>' +
           '<div class="text-slate-500 mt-1">Cargo: <strong class="text-slate-800">' + v.cargo_quantity_mt.toLocaleString() + ' MT Coking Coal</strong></div>' +
           '<div class="text-slate-500">Origin: <strong class="text-slate-800">' + v.origin_port + '</strong></div>' +
-          '<div class="text-slate-500">Final Destination: <strong class="text-slate-800">' + v.destination_plant + '</strong></div>' +
+          '<div class="text-slate-500">Destination: <strong class="text-slate-800">' + v.destination_plant + '</strong></div>' +
           '</div>'
         );
 
@@ -818,8 +860,11 @@ Loading document...
       const opt = selectedVessel.prescriptive_evaluation;
       state.currentOptimization = opt;
 
+      const roundedSavingsUSD = Math.round(opt.net_savings_usd);
+      const formattedCrores = Number(opt.net_savings_inr_crore).toFixed(2);
+
       // Update Top Simple Stats
-      document.getElementById('topSavings').innerHTML = '₹' + opt.net_savings_inr_crore + ' Crore <span class="text-xs font-semibold text-slate-500">($' + Math.round(opt.net_savings_usd / 1000) + 'k)</span>';
+      document.getElementById('topSavings').innerHTML = '₹' + formattedCrores + ' Crore <span class="text-xs font-semibold text-slate-500">($' + Math.round(roundedSavingsUSD / 1000) + 'k)</span>';
       document.getElementById('topDays').textContent = opt.days_saved + ' Days Faster';
       document.getElementById('topPort').textContent = opt.recommended_port_name;
 
@@ -834,22 +879,23 @@ Loading document...
         : 'Maintain Course to ' + opt.baseline_port_name;
 
       document.getElementById('recActionSub').textContent = 
-        selectedVessel.cargo_quantity_mt.toLocaleString() + ' MT Coal for ' + opt.destination_plant;
+        selectedVessel.cargo_quantity_mt.toLocaleString() + ' MT Coal bound for ' + opt.destination_plant;
 
-      // Update Side-by-Side Card Numbers
+      // Update Side-by-Side Card Numbers (Cleanly rounded without messy decimals!)
       const base = opt.port_evaluations.find(p => p.port_id === opt.baseline_port_id) || opt.port_evaluations[0];
       const rec = opt.port_evaluations.find(p => p.port_id === opt.recommended_port_id) || opt.port_evaluations[1];
 
-      document.getElementById('cardBaseTLC').textContent = '$' + base.total_landed_cost_usd.toLocaleString();
-      document.getElementById('cardOptTLC').textContent = '$' + rec.total_landed_cost_usd.toLocaleString();
+      document.getElementById('cardBaseTLC').textContent = '$' + Math.round(base.total_landed_cost_usd).toLocaleString();
+      document.getElementById('cardOptTLC').textContent = '$' + Math.round(rec.total_landed_cost_usd).toLocaleString();
 
       // Update Savings Banner
-      document.getElementById('recTotalSavings').textContent = '₹' + opt.net_savings_inr_crore + ' Crore ($' + opt.net_savings_usd.toLocaleString() + ')';
+      document.getElementById('recTotalSavings').textContent = '₹' + formattedCrores + ' Crore ($' + roundedSavingsUSD.toLocaleString() + ')';
       document.getElementById('recINRText').textContent = 'Delivers coal ' + opt.days_saved + ' days earlier to ' + opt.destination_plant;
 
       // Simple Rationale
+      const demurrageSaved = Math.round(opt.formula_verification.demurrage_saved_usd);
       document.getElementById('recRationale').innerHTML = 
-        '<strong>Why divert?</strong> Paradip Port currently has 18 ships waiting in line. Changing the ship\'s course to Dhamra Port while it is still in open water avoids $' + opt.formula_verification.demurrage_saved_usd.toLocaleString() + ' in waiting fines and connects directly to waiting Indian Railways coal trains, saving <strong>₹' + opt.net_savings_inr_crore + ' Crore</strong> in total landed cost.';
+        '<strong>Why divert?</strong> Paradip Port currently has 18 ships waiting in queue. Changing the ship\'s course to Dhamra Port while it is still in open water avoids $' + demurrageSaved.toLocaleString() + ' in waiting fines and connects directly to waiting Indian Railways coal trains, saving <strong>₹' + formattedCrores + ' Crore</strong> in total landed cost.';
     }
 
     function renderRailTable() {
@@ -1010,6 +1056,9 @@ Loading document...
         }).then(r => r.json());
         state.currentDocs = res;
       } catch (err) {
+        const roundedSavings = Math.round(opt.net_savings_usd).toLocaleString();
+        const formattedCrores = Number(opt.net_savings_inr_crore).toFixed(2);
+
         state.currentDocs = {
           ref_no: 'CRIS-FOIS-EIND-' + selectedVessel.imo + '-2026',
           fois_indent: '================================================================================\n' +
@@ -1037,7 +1086,7 @@ Loading document...
             'Under Clause 18 of standard BIMCO liberties clause and Calcutta High Court\n' +
             '(SAIL vs. Vizag Seaport, 2026) precedent,\n' +
             'proceed to Dhamra Port to mitigate unreasonable outer anchorage detention.\n\n' +
-            'Net Landed Cost Savings: $' + opt.net_savings_usd.toLocaleString() + ' USD (₹' + opt.net_savings_inr_crore + ' Crore).',
+            'Net Landed Cost Savings: $' + roundedSavings + ' USD (₹' + formattedCrores + ' Crore).',
           pre_nor: '================================================================================\n' +
             'ADVANCE NOTICE OF READINESS (PRE-NOR)\n' +
             '================================================================================\n' +
