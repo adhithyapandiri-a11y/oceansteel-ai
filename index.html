@@ -37,9 +37,13 @@
     }
   </script>
 
-  <!-- Leaflet CSS & JS -->
+  <!-- Leaflet CSS & JS (2D Tactical Engine) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- CesiumJS for Photorealistic 3D Google Earth -->
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
 
   <!-- Chart.js for ML Freight Forecasting -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -75,6 +79,26 @@
       height: 100%;
       background: #091322 !important;
       font-family: 'Inter', sans-serif !important;
+    }
+
+    #cesium-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000000;
+    }
+
+    /* Clean Cesium UI Clutter */
+    .cesium-widget-credits {
+      display: none !important;
+    }
+    .cesium-viewer-bottom {
+      display: none !important;
+    }
+    .cesium-viewer-toolbar {
+      display: none !important;
     }
 
     /* High Z-Index for Modals to ALWAYS overlay Leaflet */
@@ -345,29 +369,54 @@
         <div class="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 text-xs">
           <div class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="font-bold text-slate-800">Google Earth Satellite View &bull; Bay of Bengal</span>
+            <span class="font-bold text-slate-800" id="mapHeaderTitle">Google Earth 3D &bull; Bay of Bengal</span>
             <span class="text-slate-400 hidden sm:inline">|</span>
-            <span class="text-slate-500 text-[11px] hidden sm:inline">Click vessel or ports for live data</span>
+            <span class="text-slate-500 text-[11px] hidden sm:inline">Click vessel or ports for live telemetry</span>
           </div>
 
-          <!-- Camera Jump Presets -->
-          <div class="flex items-center gap-1.5">
-            <span class="text-[10px] font-bold text-slate-400 uppercase hidden md:inline">Focus:</span>
-            <button onclick="flyToLocation('vessel')" class="px-2.5 py-1 text-xs font-bold bg-blue-50 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-100 transition">
-              🚢 Ship
+          <!-- Controls: Mode Switcher + Camera Presets + Key Config -->
+          <div class="flex items-center gap-2">
+            <!-- 3D / 2D Engine Switcher -->
+            <div class="flex items-center bg-slate-200/80 p-0.5 rounded-lg text-[11px] font-bold">
+              <button id="btnMode3D" onclick="switchMapMode('3d')" class="px-2.5 py-1 rounded-md transition bg-blue-600 text-white shadow-xs flex items-center gap-1">
+                <span>🌐</span> <span>3D Earth</span>
+              </button>
+              <button id="btnMode2D" onclick="switchMapMode('2d')" class="px-2.5 py-1 rounded-md transition text-slate-600 hover:text-slate-900 flex items-center gap-1">
+                <span>🗺️</span> <span>2D Tactical</span>
+              </button>
+            </div>
+
+            <!-- Earth Key Config Button -->
+            <button onclick="openApiKeyModal()" class="px-2.5 py-1 text-xs font-semibold bg-white text-slate-700 rounded-md border border-slate-200 hover:bg-slate-50 transition flex items-center gap-1 shadow-xs" title="Configure Google Earth API Key">
+              <span>⚙️</span>
+              <span class="hidden md:inline" id="keyStatusBadge">Earth Key</span>
             </button>
-            <button onclick="flyToLocation('ports')" class="px-2.5 py-1 text-xs font-semibold bg-white text-slate-700 rounded-md border border-slate-200 hover:bg-slate-50 transition">
-              ⚓ Ports
-            </button>
-            <button onclick="flyToLocation('ocean')" class="px-2.5 py-1 text-xs font-semibold bg-white text-slate-700 rounded-md border border-slate-200 hover:bg-slate-50 transition">
-              🌐 Overview
-            </button>
+
+            <div class="h-4 w-px bg-slate-200 hidden md:inline"></div>
+
+            <!-- Camera Jump Presets -->
+            <div class="flex items-center gap-1">
+              <span class="text-[10px] font-bold text-slate-400 uppercase hidden md:inline">Focus:</span>
+              <button onclick="flyToLocation('vessel')" class="px-2 py-1 text-xs font-bold bg-blue-50 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-100 transition">
+                🚢 Ship
+              </button>
+              <button onclick="flyToLocation('ports')" class="px-2 py-1 text-xs font-semibold bg-white text-slate-700 rounded-md border border-slate-200 hover:bg-slate-50 transition">
+                ⚓ Ports
+              </button>
+              <button onclick="flyToLocation('ocean')" class="px-2 py-1 text-xs font-semibold bg-white text-slate-700 rounded-md border border-slate-200 hover:bg-slate-50 transition">
+                🌐 Overview
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- The Map Container -->
         <div id="map-wrapper">
+          <!-- 2D Leaflet Container -->
           <div id="map"></div>
+
+          <!-- 3D Cesium Container -->
+          <div id="cesium-container"></div>
 
           <!-- Map Legend (Clean & Professional) -->
           <div class="absolute top-4 right-4 z-[400] bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg p-2.5 shadow-md text-[11px] space-y-1 font-medium">
@@ -1295,6 +1344,63 @@ Loading document...
         </button>
       </div>
 
+  <!-- ========================================================================= -->
+  <!-- 13B. GOOGLE EARTH 3D API KEY MODAL -->
+  <!-- ========================================================================= -->
+  <div id="apiKeyModal" class="app-modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-4">
+      
+      <div class="flex items-start justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xl">
+            🌐
+          </div>
+          <div>
+            <h3 class="font-extrabold text-base text-slate-900">Google Earth 3D Key Setup</h3>
+            <p class="text-xs text-slate-500">Stream Google's Photorealistic 3D mesh into OceanSteel AI</p>
+          </div>
+        </div>
+        <button onclick="closeApiKeyModal()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs text-slate-600 leading-relaxed">
+        <p>
+          Enter your <strong>Google Maps Platform API Key</strong> (with <strong>Map Tiles API</strong> enabled) to stream Google's full photorealistic 3D Earth terrain, buildings, and bathymetry.
+        </p>
+
+        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 text-[11.5px]">
+          <div class="font-bold text-slate-800 flex items-center gap-1.5">
+            <span>🔑</span> <span>How to get your key:</span>
+          </div>
+          <div class="text-slate-600">1. Open <a href="https://console.cloud.google.com/" target="_blank" class="text-blue-600 font-semibold underline">Google Cloud Console</a></div>
+          <div class="text-slate-600">2. Enable <strong>Map Tiles API</strong> &amp; <strong>Maps JavaScript API</strong></div>
+          <div class="text-slate-600">3. Create Credentials &rarr; Copy API Key &rarr; Paste below</div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 mb-1">Google Maps API Key:</label>
+          <input type="password" id="inputGoogleApiKey" placeholder="AIzaSy..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white" />
+        </div>
+
+        <div id="keyStatusNotice" class="text-[11px] font-semibold text-slate-500"></div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+        <button onclick="clearGoogleApiKey()" class="text-xs text-red-600 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-50 transition">
+          Clear Key
+        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="closeApiKeyModal()" class="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
+            Cancel
+          </button>
+          <button onclick="saveGoogleApiKey()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition">
+            Save &amp; Activate 3D
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1435,11 +1541,126 @@ Loading document...
     ];
 
     // =========================================================================
-    // B. INITIALIZATION
+    // B. DUAL MAP ENGINE (3D GOOGLE EARTH & 2D TACTICAL)
     // =========================================================================
+    let currentMapMode = localStorage.getItem('oceansteel_map_mode') || '3d';
+    let viewer3D = null;
+    let tileset3D = null;
+    const GOOGLE_EARTH_KEY_STORAGE = 'OCEANSTEEL_GOOGLE_EARTH_KEY';
+
+    function getGoogleApiKey() {
+      return localStorage.getItem(GOOGLE_EARTH_KEY_STORAGE) || "";
+    }
+
+    function updateKeyStatusBadge() {
+      const badge = document.getElementById('keyStatusBadge');
+      const key = getGoogleApiKey();
+      if (badge) {
+        badge.innerHTML = key ? '🟢 Key Set' : 'Earth Key';
+      }
+    }
+
+    function openApiKeyModal() {
+      const modal = document.getElementById('apiKeyModal');
+      const input = document.getElementById('inputGoogleApiKey');
+      const notice = document.getElementById('keyStatusNotice');
+      const key = getGoogleApiKey();
+      if (input) input.value = key;
+      if (notice) {
+        notice.innerHTML = key 
+          ? '<span class="text-emerald-600 font-bold">✓ Active API Key saved in browser</span>' 
+          : '<span class="text-slate-500">No key set. 3D mode streams high-resolution satellite imagery until a Google Earth key is entered.</span>';
+      }
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeApiKeyModal() {
+      const modal = document.getElementById('apiKeyModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function saveGoogleApiKey() {
+      const input = document.getElementById('inputGoogleApiKey');
+      const key = input ? input.value.trim() : "";
+      if (key) {
+        localStorage.setItem(GOOGLE_EARTH_KEY_STORAGE, key);
+      } else {
+        localStorage.removeItem(GOOGLE_EARTH_KEY_STORAGE);
+      }
+      updateKeyStatusBadge();
+      closeApiKeyModal();
+
+      if (currentMapMode === '3d') {
+        init3DMap(true);
+      }
+    }
+
+    function clearGoogleApiKey() {
+      localStorage.removeItem(GOOGLE_EARTH_KEY_STORAGE);
+      const input = document.getElementById('inputGoogleApiKey');
+      if (input) input.value = '';
+      updateKeyStatusBadge();
+      closeApiKeyModal();
+      if (currentMapMode === '3d') {
+        init3DMap(true);
+      }
+    }
+
+    function switchMapMode(mode) {
+      currentMapMode = mode;
+      localStorage.setItem('oceansteel_map_mode', mode);
+
+      const map2dEl = document.getElementById('map');
+      const map3dEl = document.getElementById('cesium-container');
+      const btn3D = document.getElementById('btnMode3D');
+      const btn2D = document.getElementById('btnMode2D');
+      const titleEl = document.getElementById('mapHeaderTitle');
+
+      if (mode === '3d') {
+        if (map2dEl) map2dEl.style.display = 'none';
+        if (map3dEl) map3dEl.style.display = 'block';
+
+        if (btn3D) {
+          btn3D.className = 'px-2.5 py-1 rounded-md transition bg-blue-600 text-white shadow-xs flex items-center gap-1';
+        }
+        if (btn2D) {
+          btn2D.className = 'px-2.5 py-1 rounded-md transition text-slate-600 hover:text-slate-900 flex items-center gap-1';
+        }
+        if (titleEl) {
+          titleEl.innerHTML = 'Google Earth 3D &bull; Bay of Bengal & East Coast';
+        }
+
+        if (!viewer3D) {
+          init3DMap();
+        } else {
+          render3DEntities();
+          setTimeout(() => { if (viewer3D) viewer3D.resize(); }, 100);
+        }
+      } else {
+        if (map3dEl) map3dEl.style.display = 'none';
+        if (map2dEl) map2dEl.style.display = 'block';
+
+        if (btn3D) {
+          btn3D.className = 'px-2.5 py-1 rounded-md transition text-slate-600 hover:text-slate-900 flex items-center gap-1';
+        }
+        if (btn2D) {
+          btn2D.className = 'px-2.5 py-1 rounded-md transition bg-blue-600 text-white shadow-xs flex items-center gap-1';
+        }
+        if (titleEl) {
+          titleEl.innerHTML = '2D Tactical Satellite View &bull; Bay of Bengal';
+        }
+
+        setTimeout(() => {
+          if (map) map.invalidateSize();
+        }, 150);
+      }
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       lucide.createIcons();
       initMap();
+      updateKeyStatusBadge();
+      switchMapMode(currentMapMode);
       calculateAndRenderAll();
     });
 
@@ -1467,7 +1688,281 @@ Loading document...
       }, 300);
     }
 
+    async function init3DMap(forceReload = false) {
+      const container = document.getElementById('cesium-container');
+      if (!container || typeof Cesium === 'undefined') return;
+
+      if (forceReload && viewer3D) {
+        viewer3D.destroy();
+        viewer3D = null;
+      }
+
+      if (viewer3D) return;
+
+      try {
+        viewer3D = new Cesium.Viewer('cesium-container', {
+          animation: false,
+          baseLayerPicker: false,
+          fullscreenButton: false,
+          geocoder: false,
+          homeButton: false,
+          infoBox: false,
+          sceneModePicker: false,
+          selectionIndicator: false,
+          timeline: false,
+          navigationHelpButton: false,
+          scene3DOnly: true
+        });
+
+        viewer3D.scene.skyAtmosphere.show = true;
+        viewer3D.scene.globe.enableLighting = false;
+
+        const key = getGoogleApiKey();
+        let loadedGoogleTiles = false;
+        if (key && Cesium.createGooglePhotorealistic3DLayer) {
+          try {
+            tileset3D = await Cesium.createGooglePhotorealistic3DLayer({ key: key });
+            viewer3D.scene.primitives.add(tileset3D);
+            loadedGoogleTiles = true;
+            console.log("Connected to Google Earth Photorealistic 3D Tiles!");
+          } catch (tileErr) {
+            console.warn("Could not load Google 3D Tiles, falling back to satellite:", tileErr);
+          }
+        }
+
+        if (!loadedGoogleTiles) {
+          try {
+            const esriImagery = await Cesium.ArcGisMapServerImageryProvider.fromUrl(
+              'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
+            );
+            viewer3D.imageryLayers.removeAll();
+            viewer3D.imageryLayers.addImageryProvider(esriImagery);
+          } catch (imgErr) {
+            console.warn("Cesium imagery fallback:", imgErr);
+          }
+        }
+
+        // Click handler for 3D globe entities
+        const handler = new Cesium.ScreenSpaceEventHandler(viewer3D.scene.canvas);
+        handler.setInputAction((movement) => {
+          const picked = viewer3D.scene.pick(movement.position);
+          if (Cesium.defined(picked) && picked.id) {
+            const id = picked.id.id || '';
+            if (id === 'vsl_steel_horizon') {
+              openVesselDrawer();
+            } else if (id.startsWith('port_')) {
+              openComparisonModal();
+            }
+          }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        render3DEntities();
+        flyToLocation3D('ocean', 0);
+
+      } catch (err) {
+        console.error("Cesium 3D init error:", err);
+      }
+    }
+
+    function render3DEntities() {
+      if (!viewer3D || typeof Cesium === 'undefined') return;
+
+      viewer3D.entities.removeAll();
+
+      const v = activeScenario.vessel;
+      const ports = activeScenario.ports;
+      const pPort = ports.paradip;
+      const dPort = ports.dhamra;
+
+      // 1. Vessel: MV Steel Horizon
+      const vesselSvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="22" fill="%230284c7" stroke="%23ffffff" stroke-width="3"/><text x="28" y="35" font-size="22" text-anchor="middle" fill="white">🚢</text></svg>';
+
+      viewer3D.entities.add({
+        id: 'vsl_steel_horizon',
+        name: 'MV Steel Horizon',
+        position: Cesium.Cartesian3.fromDegrees(v.currentLon, v.currentLat, 80),
+        billboard: {
+          image: vesselSvg,
+          scale: 0.85,
+          verticalOrigin: Cesium.VerticalOrigin.CENTER,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY
+        },
+        label: {
+          text: `🚢 MV Steel Horizon\n150,000 MT Coking Coal • Heading 325°`,
+          font: 'bold 11px Inter, sans-serif',
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          fillColor: Cesium.Color.WHITE,
+          outlineColor: Cesium.Color.fromCssColorString('#0284c7'),
+          outlineWidth: 3,
+          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+          pixelOffset: new Cesium.Cartesian2(0, -32),
+          backgroundColor: new Cesium.Color(0.04, 0.08, 0.15, 0.92),
+          showBackground: true,
+          backgroundPadding: new Cesium.Cartesian2(8, 5),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY
+        }
+      });
+
+      // 2. Shipping Routes:
+      // A. Smart Diverted Route to Dhamra Port (Cyan Glowing Geodesic Arc)
+      viewer3D.entities.add({
+        id: 'route_dhamra_divert',
+        name: 'Prescriptive Reroute to Dhamra Port (Optimal)',
+        polyline: {
+          positions: Cesium.Cartesian3.fromDegreesArray([
+            v.currentLon, v.currentLat,
+            dPort.lon, dPort.lat
+          ]),
+          width: 5,
+          material: new Cesium.PolylineGlowMaterialProperty({
+            glowPower: 0.35,
+            color: Cesium.Color.fromCssColorString('#0ea5e9')
+          }),
+          arcType: Cesium.ArcType.GEODESIC
+        }
+      });
+
+      // B. Congested Route to Paradip (Red Dashed Geodesic Arc)
+      viewer3D.entities.add({
+        id: 'route_paradip_congested',
+        name: 'Congested Route to Paradip Port',
+        polyline: {
+          positions: Cesium.Cartesian3.fromDegreesArray([
+            v.currentLon, v.currentLat,
+            pPort.lon, pPort.lat
+          ]),
+          width: 3.5,
+          material: new Cesium.PolylineDashMaterialProperty({
+            color: Cesium.Color.fromCssColorString('#ef4444'),
+            dashLength: 20.0
+          }),
+          arcType: Cesium.ArcType.GEODESIC
+        }
+      });
+
+      // 3. Ports in 3D
+      Object.keys(ports).forEach(k => {
+        const port = ports[k];
+        const isDhamra = port.id === "PRT_DHAMRA";
+        const isParadip = port.id === "PRT_PARADIP";
+        const isHaldia = port.id === "PRT_HALDIA";
+
+        let pinColor = '#10b981';
+        let badgeText = `🟢 ${port.name} (Direct Berth)\nDraft: ${port.maxDraftM}m | 0d wait`;
+
+        if (isParadip) {
+          pinColor = port.waitDays > 3 ? '#ef4444' : '#10b981';
+          badgeText = `🔴 Paradip Port (${port.waitDays}d Delay)\nDraft: ${port.maxDraftM}m | ${port.queueVessels} Ships Waiting`;
+        } else if (isHaldia) {
+          pinColor = '#dc2626';
+          badgeText = `❌ Haldia Port (Draft Violation)\nDraft: 8.5m < 17.5m required`;
+        } else if (!isDhamra) {
+          pinColor = '#f59e0b';
+          badgeText = `🟠 ${port.name}\nDraft: ${port.maxDraftM}m | ${port.waitDays}d wait`;
+        }
+
+        viewer3D.entities.add({
+          id: `port_${port.id}`,
+          name: port.name,
+          position: Cesium.Cartesian3.fromDegrees(port.lon, port.lat, 50),
+          point: {
+            pixelSize: 12,
+            color: Cesium.Color.fromCssColorString(pinColor),
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 2,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY
+          },
+          label: {
+            text: badgeText,
+            font: 'bold 10px Inter, sans-serif',
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            fillColor: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.fromCssColorString('#0f172a'),
+            outlineWidth: 2.5,
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            pixelOffset: new Cesium.Cartesian2(0, -16),
+            backgroundColor: new Cesium.Color(0.06, 0.1, 0.18, 0.9),
+            showBackground: true,
+            backgroundPadding: new Cesium.Cartesian2(6, 4),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY
+          }
+        });
+      });
+
+      // 4. Steel Plant: SAIL Rourkela
+      viewer3D.entities.add({
+        id: 'plant_sail_rourkela',
+        name: 'SAIL Rourkela Steel Plant',
+        position: Cesium.Cartesian3.fromDegrees(84.8640, 22.2259, 50),
+        point: {
+          pixelSize: 13,
+          color: Cesium.Color.fromCssColorString('#2563eb'),
+          outlineColor: Cesium.Color.WHITE,
+          outlineWidth: 2,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY
+        },
+        label: {
+          text: '🏭 SAIL Rourkela Steel Plant\nRunway: 11 Days Stock',
+          font: 'bold 10px Inter, sans-serif',
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          fillColor: Cesium.Color.WHITE,
+          outlineColor: Cesium.Color.fromCssColorString('#1e3a8a'),
+          outlineWidth: 2.5,
+          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+          pixelOffset: new Cesium.Cartesian2(0, -16),
+          backgroundColor: new Cesium.Color(0.08, 0.15, 0.3, 0.9),
+          showBackground: true,
+          backgroundPadding: new Cesium.Cartesian2(6, 4),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY
+        }
+      });
+
+      // 5. Inland Rail Corridors
+      RAIL_CORRIDORS.forEach(corridor => {
+        const flatCoords = [];
+        corridor.coords.forEach(pt => {
+          flatCoords.push(pt[1], pt[0]);
+        });
+
+        viewer3D.entities.add({
+          name: corridor.name,
+          polyline: {
+            positions: Cesium.Cartesian3.fromDegreesArray(flatCoords),
+            width: 3.5,
+            material: new Cesium.PolylineDashMaterialProperty({
+              color: Cesium.Color.fromCssColorString(corridor.color),
+              dashLength: 12.0
+            })
+          }
+        });
+      });
+
+      // 6. Active BOXN Freight Train
+      viewer3D.entities.add({
+        id: 'train_boxn_9042',
+        name: 'Indian Railways BOXN-9042',
+        position: Cesium.Cartesian3.fromDegrees(83.9812, 21.4669, 50),
+        label: {
+          text: '🚂 BOXN-9042 (3,850 MT Coal)\nDhamra &rarr; SAIL Rourkela',
+          font: 'bold 10px Inter, sans-serif',
+          fillColor: Cesium.Color.fromCssColorString('#0f172a'),
+          backgroundColor: Cesium.Color.fromCssColorString('#f59e0b'),
+          showBackground: true,
+          backgroundPadding: new Cesium.Cartesian2(6, 4),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY
+        }
+      });
+    }
+
     function flyToLocation(preset) {
+      if (currentMapMode === '3d' && viewer3D) {
+        flyToLocation3D(preset);
+      } else {
+        flyToLocation2D(preset);
+      }
+    }
+
+    function flyToLocation2D(preset) {
       if (!map) return;
       if (preset === 'ocean') {
         map.flyTo([16.5, 87.0], 5, { duration: 0.8 });
@@ -1475,6 +1970,43 @@ Loading document...
         map.flyTo([activeScenario.vessel.currentLat, activeScenario.vessel.currentLon], 7, { duration: 0.8 });
       } else if (preset === 'ports') {
         map.flyTo([20.4, 86.8], 6.5, { duration: 0.8 });
+      }
+    }
+
+    function flyToLocation3D(preset, duration = 1.2) {
+      if (!viewer3D) return;
+      const v = activeScenario.vessel;
+
+      if (preset === 'vessel') {
+        viewer3D.camera.flyTo({
+          destination: Cesium.Cartesian3.fromDegrees(v.currentLon, v.currentLat, 420000),
+          orientation: {
+            heading: Cesium.Math.toRadians(325),
+            pitch: Cesium.Math.toRadians(-38),
+            roll: 0.0
+          },
+          duration: duration
+        });
+      } else if (preset === 'ports') {
+        viewer3D.camera.flyTo({
+          destination: Cesium.Cartesian3.fromDegrees(86.8, 20.4, 460000),
+          orientation: {
+            heading: Cesium.Math.toRadians(0),
+            pitch: Cesium.Math.toRadians(-45),
+            roll: 0.0
+          },
+          duration: duration
+        });
+      } else if (preset === 'ocean') {
+        viewer3D.camera.flyTo({
+          destination: Cesium.Cartesian3.fromDegrees(86.5, 16.5, 2300000),
+          orientation: {
+            heading: Cesium.Math.toRadians(0),
+            pitch: Cesium.Math.toRadians(-62),
+            roll: 0.0
+          },
+          duration: duration
+        });
       }
     }
 
@@ -1609,8 +2141,11 @@ Loading document...
       document.getElementById('recTotalSavings').textContent = '₹' + evalData.netSavingsINR + ' Crore ($' + Math.round(evalData.netSavingsUSD).toLocaleString() + ')';
       document.getElementById('recINRText').textContent = 'Arrives ' + evalData.earlierDeliveryDays + ' days earlier at SAIL Rourkela';
 
-      // 3. Update Map
+      // 3. Update Map (Both 2D & 3D)
       renderMapMarkers();
+      if (viewer3D) {
+        render3DEntities();
+      }
     }
 
     function renderMapMarkers() {
