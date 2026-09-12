@@ -38,19 +38,42 @@ All foundational research, mathematical proofs, and slide deck transcriptions ar
 
 ---
 
-## 🎯 The Real-World Industry Problem
+## 📌 Executive Overview & Core Problem Statement
 
-* **High Cost of Crude Steel Production:** Raw material logistics represents up to **40% of the cost of crude steel production in India**.
-* **Heavy Import Dependence:** Indian steel blast furnaces require high-grade metallurgical coking coal imported from Queensland (Australia), Indonesia, and South Africa on giant bulk carriers (Capesize vessels: 150,000–180,000 DWT).
-* **Port Congestion & Heavy Forex Penalties:** When vessels arrive at East Coast Indian ports (e.g. Paradip Port), mechanical outages, weather swells, or bunching cause ships to wait **5 to 10 days** at outer anchorage.
-* **Costly Demurrage:** Every idle day incurs charter demurrage fines of **$20,000 to $35,000 USD per day** (paid in foreign exchange). A single 5-day delay wastes **₹1.0 to ₹1.5 Crore** on just one voyage.
-* **The Operational Silo:** Maritime ship tracking (AIS) and Indian Railways freight train logistics (FOIS/CRIS) operate in complete isolation. No single platform connects sea data to railway wagon allocation.
+* **Project:** **OceanSteel AI** — Autonomous Maritime-to-Inland Decision Support & Total Landed Cost (TLC) Optimizer
+* **Problem:** Maritime shipping (AIS) and Indian Railways freight (FOIS/CRIS) operate in isolated operational silos. When bulk carriers arrive at congested East Coast ports (e.g., Paradip), vessels wait 7–10 days at outer anchorage, causing catastrophic charter demurrage fines ($20,000–$35,000/day in USD forex) and stockout risks for inland blast furnaces.
+* **Solution:** India's first **Prescriptive Maritime-to-Inland Telemetry Decision Support System** that dynamically evaluates demurrage, marine bunker fuel, port tariffs, railway rake throughput, and plant stockpile runway to minimize the Total Landed Cost (TLC) of imported raw materials.
+* **Core Differentiator:** **Descriptive Tracking $\rightarrow$ Prescriptive Autonomous Decision Support**. Descriptive tools merely display where a vessel is; OceanSteel AI calculates what the steel company must do next, validates legal/physical feasibility, and auto-generates statutory execution packages.
 
 ---
 
-## 💡 The OceanSteel AI Solution
+### 🧩 Core Modules & Architecture
+1. **Tactical GIS Command Map:** High-resolution satellite/nautical visualization displaying live AIS vessel positions, anchorage waiting queues, navigation corridors, and inland railway sidings.
+2. **Total Landed Cost (TLC) Optimizer:** Mixed-integer linear programming / dynamic cost engine balancing demurrage penalties, extra steaming fuel, handling charges, and railway freight (Class 140).
+3. **Freight & Congestion Forecasting:** Forward trajectory modeling and queue depth predictive telemetry for East Coast hubs (Paradip, Dhamra, Haldia, Visakhapatnam).
+4. **Legal & Railway Document Generation:** Instant 1-click issuance of BIMCO Charter Party Rerouting Addenda, Master's Notice of Readiness (NOR), Indian Railways FOIS Electronic Rake Indents (e-Indent), Cargo Evacuation Plans, and Financial Approval Sheets.
 
-**OceanSteel AI** builds India's first **Maritime-to-Inland Telemetry Bridge** that connects live open-ocean vessel tracking (AIS) with Indian Railways freight wagon availability (FOIS/CRIS) to dynamically minimize the **Total Landed Cost (TLC)** of imported raw materials.
+---
+
+### 📥 Inputs & 📤 Outputs
+
+| Category | Parameters & Telemetry Feeds |
+| :--- | :--- |
+| **System Inputs** | **Ship Profile:** Vessel class (Capesize), DWT, Current draft (17.5m), Speed (12.5 kn), Heading.<br>**Cargo:** Grade (Australian Hard Coking Coal), Volume (150,000 MT), Bill of Lading value.<br>**Port Telemetry:** Live anchorage queue depth (Paradip 7.8d vs Dhamra 1.1d), Berth draft limits (Haldia 8.5m limit vs 18.5m deepwater), Handling tariffs.<br>**Rail Capacity:** BOXN / BOXNHL rake availability (FOIS), Daily siding throughput, Siding clearance capacity.<br>**Inland Logistics:** Rail distance to plant (Dhamra-Rourkela 418km vs Paradip-Rourkela 462km), Class 140 freight tariff.<br>**Plant Runway:** Remaining raw material stockpile buffer (SAIL Rourkela 11-day critical threshold).<br>**Cost Drivers:** Charter demurrage rate ($25,000/day), VLSFO bunker fuel price ($650/MT), Port handling charges. |
+| **System Outputs** | **Optimal Route Recommendation:** Ranked feasible port recommendation with physical constraint verification.<br>**Total Landed Cost (TLC):** Complete itemized cost breakdown per port.<br>**Financial Net Savings:** Clear delta calculation showing exact foreign exchange and rupee savings (**₹2.26 Crore / $272,068 USD**).<br>**Delivery Improvement:** Net turnaround acceleration (**8.3 days earlier delivery**, **6.7 days anchorage wait avoided**).<br>**Evacuation Allocation:** Railway wagon scheduling (**39 BOXN rakes** cleared in 3.9 days).<br>**Operational Execution Package:** 5 legally compliant, ready-to-issue maritime and railway operational documents. |
+
+---
+
+### 🏆 Benchmark Decision Case: MV Steel Horizon
+
+* **Vessel & Cargo:** MV Steel Horizon — 150,000 MT Australian Premium Hard Coking Coal from Gladstone to **SAIL Rourkela Steel Plant (RSP)**.
+* **Initial Status:** Nominated Port: Paradip | Anchorage Queue: 7.8 Days | Demurrage Liability: $195,000 USD.
+* **Prescriptive Action:** **DIVERT TO DHAMRA PORT** (1.1 Days Queue, 18.5m Permissible Draft, 10 Rakes/Day FOIS Throughput).
+* **Net Modeled Impact:**
+  * 💰 **₹2.26 Crore ($272,068 USD)** net landed cost savings
+  * ⏱️ **8.3 days earlier delivery** to SAIL Rourkela (safeguards 11-day plant stockpile runway)
+  * ⚓ **6.7 days anchorage delay avoided**
+  * 🚂 **39 BOXN rakes** safely dispatched via South Eastern Railway corridor
 
 ```mermaid
 flowchart TD
@@ -195,13 +218,35 @@ This repository is pre-configured with `vercel.json` and serverless Python bindi
 
 ---
 
-## 🧪 Verification & Automated Test Suite
+## 🧪 Verification & Acceptance Test Sequence
 
-Run the automated backend test suite:
+### Automated Backend Tests
+Run the unit test suite:
 ```bash
 python3 -m unittest discover -s backend/tests -p "test_*.py"
 ```
 **Results:** `5/5 tests passing in 0.126s`.
+
+### 30-Step Interactive Judge Acceptance Flow
+Follow this exact sequence to verify full end-to-end functionality:
+1. **Launch App:** Open `index.html` in your browser (or run `./run_backend.sh` and navigate to `http://localhost:8000`).
+2. **Verify Map:** Satellite GIS map loads with MV Steel Horizon, port beacons, and railway sidings.
+3. **Click Vessel:** Click MV Steel Horizon on the map $\rightarrow$ Vessel Intelligence drawer opens with 150,000 MT coking coal and 17.5m draft.
+4. **Simulate Congestion:** Click `[ ⚠️ Simulate Congestion ]` $\rightarrow$ Paradip queue jumps to 7.8 days with amber alert badge.
+5. **Run Analysis:** Click `[ ⚡ Run OceanSteel Analysis ]` $\rightarrow$ 1.9s 7-step checklist animation executes.
+6. **Constraint Validation:**
+   - Haldia rejected: `❌ Draft Violation (Max 8.5m < 17.5m required)`.
+   - Paradip penalized: `❌ Severe Congestion (7.8d queue, $195k demurrage)`.
+   - Vizag sub-optimal: `⚠️ Higher Inland Rail Haul (810 km vs 418 km)`.
+   - Dhamra selected: `✓ Optimal Multi-Modal Solution`.
+7. **TLC Financial Proof:** Paradip TLC (\$5,027,855) vs Dhamra TLC (\$4,755,787) $\rightarrow$ Net savings: **₹2.26 Crore (\$272,068 USD)**.
+8. **Delivery Speed:** 8.3 days earlier delivery & 6.7 days anchorage wait avoided.
+9. **Rail Allocation:** 39 BOXN rakes scheduled via Indian Railways South Eastern Railway corridor.
+10. **Explainability:** View the `🧠 OceanSteel Decision Engine` explainability breakdown showing all 4 port evaluations.
+11. **Port Matrix:** Click `[ 📊 Compare All Ports ]` $\rightarrow$ full 8-column comparative matrix modal displays.
+12. **Execution Package:** Click `[ 📄 Generate Execution Package ]` $\rightarrow$ 5 operational documents rendered (BIMCO Rerouting Addendum, CRIS FOIS e-Indent, Cargo Evacuation Plan, Master's NOR, Financial Approval Sheet).
+13. **Human-in-the-Loop Approval:** Click `[ ✍️ Approve Diversion ]` $\rightarrow$ verification modal opens with sign-off details $\rightarrow$ click `[ Confirm & Issue Statutory Orders ]` $\rightarrow$ transition to `VOYAGE OPTIMIZED • EXECUTION READY`.
+14. **One-Click Reset:** Click `[ 🔄 Reset Benchmark ]` $\rightarrow$ instantly returns all parameters and states to the clean initial demo state.
 
 ---
 
